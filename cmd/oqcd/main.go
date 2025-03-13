@@ -24,6 +24,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/database"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/version"
@@ -51,6 +52,9 @@ func run(cfg *config.Config) error {
 		return err
 	}
 	defer db.Close(ctx)
+
+	cleaner := auth.NewCleaner(cfg, db)
+	go cleaner.Run(ctx)
 
 	ctrl := web.NewController(cfg, db)
 

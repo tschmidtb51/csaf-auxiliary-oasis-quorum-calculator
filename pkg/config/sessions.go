@@ -15,15 +15,12 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"hash"
 	"log/slog"
 	"strings"
 	"time"
 )
 
-const (
-	defaultSessionMaxAge = time.Hour
-)
+const defaultSessionMaxAge = time.Hour
 
 // HexBytes is a hex encoded string.
 type HexBytes []byte
@@ -32,7 +29,6 @@ type HexBytes []byte
 type Sessions struct {
 	MaxAge time.Duration `toml:"max_age"`
 	Secret HexBytes      `toml:"secret"`
-	mac    hash.Hash
 }
 
 // UnmarshalText implements [encoding.TextUnmarshaler].
