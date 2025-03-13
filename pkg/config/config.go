@@ -12,6 +12,7 @@ package config
 import (
 	"fmt"
 	"log/slog"
+	"net"
 	"strconv"
 
 	"github.com/BurntSushi/toml"
@@ -67,6 +68,11 @@ type Config struct {
 	Log      Log      `toml:"log"`
 	Web      Web      `toml:"web"`
 	Database Database `toml:"database"`
+}
+
+// Addr returns the combined address the web server should bind to.
+func (w *Web) Addr() string {
+	return net.JoinHostPort(w.Host, strconv.Itoa(w.Port))
 }
 
 // Load loads the configuration from a given file. An empty string
