@@ -12,9 +12,13 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -57,11 +61,44 @@ func sqlQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", "''") + "'"
 }
 
-var funcs = template.FuncMap{
-	"sqlQuote": sqlQuote,
+const alphabet = "abcdefghijklmnopqrstuvwxyz" +
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+	"0123456789"
+
+func randomString(n int) string {
+	out := make([]byte, n)
+	for x := out; len(x) > 0; x = x[1:] {
+		rand.Read(x[:1])
+		x[0] = alphabet[int(x[0])%len(alphabet)]
+	}
+	return string(out)
 }
 
-func (m *migration) load(cfg *config.Database) (string, error) {
+func createFuncMap() template.FuncMap {
+	passwords := map[string]string{}
+	return template.FuncMap{
+		"sqlQuote": sqlQuote,
+		"generatePassword": func(user string) string {
+			if s := passwords[user]; s != "" {
+				return s
+			}
+			password := randomString(12)
+			salt := make([]byte, 4)
+			hash := sha256.New()
+			hash.Write(salt)
+			io.WriteString(hash, password)
+			hashed := hash.Sum(nil)
+			s := hex.EncodeToString(hashed)
+			passwords[user] = s
+			slog.Info("Generated new password. Note it down to log in",
+				"user", user,
+				"password", password)
+			return s
+		},
+	}
+}
+
+func (m *migration) load(cfg *config.Database, funcs template.FuncMap) (string, error) {
 	data, err := migrations.ReadFile(m.path)
 	if err != nil {
 		return "", fmt.Errorf("loading migration %q failed: %w", m.path, err)
@@ -84,12 +121,13 @@ func (db *Database) applyMigrations(ctx context.Context, cfg *config.Database, m
 		return fmt.Errorf("current migration version not found: %w", err)
 	}
 	slog.DebugContext(ctx, "current migration version", "version", version)
+	funcMap := createFuncMap()
 	for i := range migs {
 		mig := &migs[i]
 		if mig.version <= version {
 			continue
 		}
-		script, err := mig.load(cfg)
+		script, err := mig.load(cfg, funcMap)
 		if err != nil {
 			return fmt.Errorf("loading migration %q failed: %w", mig.path, err)
 		}
@@ -121,7 +159,7 @@ func (db *Database) applyMigrations(ctx context.Context, cfg *config.Database, m
 
 func createDatabase(ctx context.Context, cfg *config.Database, db *sqlx.DB, migs []migration) error {
 	slog.InfoContext(ctx, "Creating database", "url", cfg.DatabaseURL)
-	script, err := migs[0].load(cfg)
+	script, err := migs[0].load(cfg, createFuncMap())
 	if err != nil {
 		return err
 	}

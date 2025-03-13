@@ -78,6 +78,7 @@ type Config struct {
 	Log      Log      `toml:"log"`
 	Web      Web      `toml:"web"`
 	Database Database `toml:"database"`
+	Sessions Sessions `toml:"sessions"`
 }
 
 // Addr returns the combined address the web server should bind to.
@@ -110,6 +111,10 @@ func Load(file string) (*Config, error) {
 			ConnMaxLifetime:         defaultDatabaseConnMaxLifetime,
 			ConnMaxIdletime:         defaultDatabaseConnMaxIdletime,
 		},
+		Sessions: Sessions{
+			Secret: nil,
+			MaxAge: defaultSessionMaxAge,
+		},
 	}
 	if file != "" {
 		md, err := toml.DecodeFile(file, cfg)
@@ -124,7 +129,12 @@ func Load(file string) (*Config, error) {
 	if err := cfg.fillFromEnv(); err != nil {
 		return nil, err
 	}
+	cfg.presetDefaults()
 	return cfg, nil
+}
+
+func (cfg *Config) presetDefaults() {
+	cfg.Sessions.presetDefaults()
 }
 
 func (cfg *Config) fillFromEnv() error {

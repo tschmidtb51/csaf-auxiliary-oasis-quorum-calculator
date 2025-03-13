@@ -11,3 +11,20 @@ CREATE TABLE versions (
     description text      NOT NULL,
     time        timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE users (
+    nickname  varchar PRIMARY KEY,
+    password  text NOT NULL,
+    firstname varchar,
+    lastname  varchar,
+    is_admin  boolean DEFAULT false
+);
+
+CREATE TABLE sessions (
+    nickname    varchar   NOT NULL REFERENCES users(nickname) ON DELETE CASCADE,
+    last_access timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    token       text      NOT NULL UNIQUE
+);
+
+INSERT INTO users (nickname, password, lastname, is_admin)
+    VALUES ('admin', {{ generatePassword "admin" | sqlQuote }}, 'Administrator', true);
