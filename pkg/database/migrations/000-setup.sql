@@ -13,17 +13,56 @@ CREATE TABLE versions (
 );
 
 CREATE TABLE users (
-    nickname  varchar PRIMARY KEY,
+    nickname  VARCHAR PRIMARY KEY,
     password  text NOT NULL,
-    firstname varchar,
-    lastname  varchar,
-    is_admin  boolean DEFAULT false
+    firstname VARCHAR,
+    lastname  VARCHAR,
+    is_admin  BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE sessions (
-    nickname    varchar   NOT NULL REFERENCES users(nickname) ON DELETE CASCADE,
+    nickname    VARCHAR   NOT NULL REFERENCES users(nickname) ON DELETE CASCADE,
     last_access timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    token       text      NOT NULL UNIQUE
+    token       VARCHAR   NOT NULL UNIQUE
+);
+
+CREATE TABLE committees (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        VARCHAR NOT NULL,
+    description VARCHAR
+);
+
+CREATE TABLE committee_role (
+    id          INTEGER PRIMARY KEY,
+    name        VARCHAR NOT NULL,
+    description VARCHAR NOT NULL,
+    UNIQUE(name)
+);
+
+INSERT INTO committee_role (id, name, description) VALUES
+    (0, 'member', 'Regular committee member'),
+    (1, 'manager', 'Committee manager');
+
+CREATE TABLE committee_roles (
+    nickname         VARCHAR NOT NULL REFERENCES users(nickname)    ON DELETE CASCADE,
+    commitee_role_id INTEGER NOT NULL REFERENCES committee_role(id) ON DELETE CASCADE,
+    committees_id    INTEGER NOT NULL REFERENCES committees(id)     ON DELETE CASCADE,
+    UNIQUE(nickname, commitee_role_id, committees_id)
+);
+
+CREATE TABLE meeting (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    committees_id INTEGER   NOT NULL REFERENCES committees(id) ON DELETE CASCADE,
+    running       BOOLEAN   NOT NULL DEFAULT FALSE,
+    start_time    TIMESTAMP NOT NULL,
+    description   VARCHAR,
+    UNIQUE(committees_id, start_time)
+);
+
+CREATE TABLE attendees (
+    meeting_id INTEGER NOT NULL REFERENCES meeting(id)     ON DELETE CASCADE,
+    nickname   VARCHAR NOT NULL REFERENCES users(nickname) ON DELETE CASCADE,
+    UNIQUE(meeting_id, nickname)
 );
 
 INSERT INTO users (nickname, password, lastname, is_admin)
