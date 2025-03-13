@@ -19,13 +19,13 @@ import (
 // Controller binds the endpoints to the internal logic.
 type Controller struct {
 	cfg *config.Config
-	db  *database.DB
+	db  *database.Database
 }
 
 // NewController returns a new Controller.
 func NewController(
 	cfg *config.Config,
-	db *database.DB,
+	db *database.Database,
 ) *Controller {
 	return &Controller{
 		cfg: cfg,

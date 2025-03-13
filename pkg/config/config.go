@@ -14,6 +14,7 @@ import (
 	"log/slog"
 	"net"
 	"strconv"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -22,7 +23,7 @@ import (
 const DefaultConfigFile = "oqcd.toml"
 
 const (
-	defaultLogFile   = "isduba.log"
+	defaultLogFile   = "oqcd.log"
 	defaultLogLevel  = slog.LevelInfo
 	defaultLogSource = false
 	defaultLogJSON   = false
@@ -39,6 +40,10 @@ const (
 	defaultDatabaseDriver                  = "sqlite3"
 	defaultDatabaseMigrate                 = false
 	defaultDatabaseTerminateAfterMigration = true
+	defaultDatabaseMaxOpenConnections      = 0
+	defaultDatabaseMaxIdleConnections      = 0
+	defaultDatabaseConnMaxLifetime         = 0
+	defaultDatabaseConnMaxIdletime         = 0
 )
 
 // Log are the config options for the logging.
@@ -58,9 +63,14 @@ type Web struct {
 
 // Database are the config options for the database.
 type Database struct {
-	DatabaseURL             string `toml:"database"`
-	Migrate                 bool   `toml:"migrate"`
-	TerminateAfterMigration bool   `toml:"terminate_after_migration"`
+	DatabaseURL             string        `toml:"database"`
+	Driver                  string        `toml:"driver"`
+	Migrate                 bool          `toml:"migrate"`
+	TerminateAfterMigration bool          `toml:"terminate_after_migration"`
+	MaxOpenConnections      int           `toml:"max_open_conns"`
+	MaxIdleConnections      int           `toml:"max_idle_conns"`
+	ConnMaxLifetime         time.Duration `toml:"conn_max_lifetime"`
+	ConnMaxIdletime         time.Duration `toml:"conn_max_idletime"`
 }
 
 // Config are all the configuration options.
@@ -92,8 +102,13 @@ func Load(file string) (*Config, error) {
 		},
 		Database: Database{
 			DatabaseURL:             defaultDatabaseURL,
+			Driver:                  defaultDatabaseDriver,
 			Migrate:                 defaultDatabaseMigrate,
 			TerminateAfterMigration: defaultDatabaseTerminateAfterMigration,
+			MaxOpenConnections:      defaultDatabaseMaxOpenConnections,
+			MaxIdleConnections:      defaultDatabaseMaxIdleConnections,
+			ConnMaxLifetime:         defaultDatabaseConnMaxLifetime,
+			ConnMaxIdletime:         defaultDatabaseConnMaxIdletime,
 		},
 	}
 	if file != "" {
@@ -114,21 +129,26 @@ func Load(file string) (*Config, error) {
 
 func (cfg *Config) fillFromEnv() error {
 	var (
-		storeString = store(noparse)
-		storeInt    = store(strconv.Atoi)
-		storeBool   = store(strconv.ParseBool)
-		storeLevel  = store(storeLevel)
+		storeString   = store(noparse)
+		storeInt      = store(strconv.Atoi)
+		storeBool     = store(strconv.ParseBool)
+		storeLevel    = store(storeLevel)
+		storeDuration = store(time.ParseDuration)
 	)
 	return storeFromEnv(
-		envStore{"ISDUBA_LOG_FILE", storeString(&cfg.Log.File)},
-		envStore{"ISDUBA_LOG_LEVEL", storeLevel(&cfg.Log.Level)},
-		envStore{"ISDUBA_LOG_JSON", storeBool(&cfg.Log.JSON)},
-		envStore{"ISDUBA_LOG_SOURCE", storeBool(&cfg.Log.Source)},
-		envStore{"ISDUBA_WEB_HOST", storeString(&cfg.Web.Host)},
-		envStore{"ISDUBA_WEB_PORT", storeInt(&cfg.Web.Port)},
-		envStore{"ISDUBA_WEB_STATIC", storeString(&cfg.Web.Static)},
-		envStore{"ISDUBA_DB_URL", storeString(&cfg.Database.DatabaseURL)},
-		envStore{"ISDUBA_DB_MIGRATE", storeBool(&cfg.Database.Migrate)},
-		envStore{"ISDUBA_DB_TERMINATE_AFTER_MIGRATION", storeBool(&cfg.Database.TerminateAfterMigration)},
+		envStore{"OQC_LOG_FILE", storeString(&cfg.Log.File)},
+		envStore{"OQC_LOG_LEVEL", storeLevel(&cfg.Log.Level)},
+		envStore{"OQC_LOG_JSON", storeBool(&cfg.Log.JSON)},
+		envStore{"OQC_LOG_SOURCE", storeBool(&cfg.Log.Source)},
+		envStore{"OQC_WEB_HOST", storeString(&cfg.Web.Host)},
+		envStore{"OQC_WEB_PORT", storeInt(&cfg.Web.Port)},
+		envStore{"OQC_WEB_STATIC", storeString(&cfg.Web.Static)},
+		envStore{"OQC_DB_URL", storeString(&cfg.Database.DatabaseURL)},
+		envStore{"OQC_DB_MIGRATE", storeBool(&cfg.Database.Migrate)},
+		envStore{"OQC_DB_TERMINATE_AFTER_MIGRATION", storeBool(&cfg.Database.TerminateAfterMigration)},
+		envStore{"OQC_DB_MAX_OPEN_CONNS", storeInt(&cfg.Database.MaxOpenConnections)},
+		envStore{"OQC_DB_MAX_IDLE_CONNS", storeInt(&cfg.Database.MaxIdleConnections)},
+		envStore{"OQC_DB_CONN_MAX_LIFETIME", storeDuration(&cfg.Database.ConnMaxLifetime)},
+		envStore{"OQC_DB_CONN_MAX_IDLETIME", storeDuration(&cfg.Database.ConnMaxIdletime)},
 	)
 }

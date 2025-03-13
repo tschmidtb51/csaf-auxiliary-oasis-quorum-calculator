@@ -11,6 +11,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -42,15 +43,11 @@ func run(cfg *config.Config) error {
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGKILL, syscall.SIGTERM)
 	defer stop()
 
-	terminate, err := database.CheckMigrations(ctx, &cfg.Database)
-	if err != nil {
-		return fmt.Errorf("migrating failed: %w", err)
-	}
-	if terminate {
+	db, err := database.NewDatabase(ctx, &cfg.Database)
+	switch {
+	case errors.Is(err, database.ErrTerminateMigration):
 		return nil
-	}
-	db, err := database.NewDB(ctx, &cfg.Database)
-	if err != nil {
+	case err != nil:
 		return err
 	}
 	defer db.Close(ctx)

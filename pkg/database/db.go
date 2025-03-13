@@ -11,23 +11,80 @@ package database
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"strings"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
+	"github.com/jmoiron/sqlx"
+
+	_ "github.com/mattn/go-sqlite3" // Link SQLite 3 driver.
 )
 
-// DB implements the handling with the database connection pool.
-type DB struct {
+// ErrTerminateMigration is returned by NewDatabase if a migration
+// was done and the configuration forces a termination.
+var ErrTerminateMigration = errors.New("terminate migration")
+
+// Database implements the handling with the database connection pool.
+type Database struct {
+	DB *sqlx.DB
 }
 
-// NewDB creates a new connection pool.
-func NewDB(ctx context.Context, cfg *config.Database) (*DB, error) {
-	// TODO: Implement me!
-	_ = ctx
-	_ = cfg
-	return &DB{}, nil
+func sqlite3URL(url string) string {
+	if !strings.ContainsRune(url, '?') {
+		return url + "?_journal=WAL&_timeout=5000&_fk=true"
+	}
+	return url
+}
+
+// NewDatabase creates a new connection pool.
+func NewDatabase(ctx context.Context, cfg *config.Database) (*Database, error) {
+
+	if cfg.Driver != "sqlite3" {
+		return nil, fmt.Errorf("database driver %q is not supported", cfg.Driver)
+	}
+
+	create, err := needsCreation(cfg.DatabaseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if !cfg.Migrate && create {
+		return nil, errors.New("setup migration needed")
+	}
+
+	url := sqlite3URL(cfg.DatabaseURL)
+
+	db, err := sqlx.ConnectContext(ctx, "sqlite3", url)
+	if err != nil {
+		return nil, fmt.Errorf("cannot connect to database %q: %w", url, err)
+	}
+
+	db.SetMaxOpenConns(cfg.MaxOpenConnections)
+	db.SetMaxIdleConns(cfg.MaxIdleConnections)
+	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
+	db.SetConnMaxIdleTime(cfg.ConnMaxIdletime)
+
+	migs, err := listMigrations()
+	if err != nil {
+		return nil, err
+	}
+
+	if create {
+		slog.InfoContext(ctx, "Create database", "url", cfg.DatabaseURL)
+		if err := createDatabase(ctx, cfg, db, migs); err != nil {
+			return nil, fmt.Errorf("creating database %q failed: %w", url, err)
+		}
+		if cfg.TerminateAfterMigration {
+			return nil, ErrTerminateMigration
+		}
+	}
+
+	return &Database{DB: db}, nil
 }
 
 // Close closes the connection pool.
-func (db *DB) Close(context.Context) {
-	// TODO: Implement me!
+func (db *Database) Close(context.Context) {
+	// Currently not needed.
 }
