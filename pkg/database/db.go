@@ -86,6 +86,10 @@ func NewDatabase(ctx context.Context, cfg *config.Database) (*Database, error) {
 		return nil, err
 	}
 
+	if cfg.Migrate && cfg.TerminateAfterMigration {
+		return nil, ErrTerminateMigration
+	}
+
 	return database, nil
 }
 

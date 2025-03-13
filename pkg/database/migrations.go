@@ -117,7 +117,8 @@ func (m *migration) load(cfg *config.Database, funcs template.FuncMap) (string, 
 func (db *Database) applyMigrations(ctx context.Context, cfg *config.Database, migs []migration) error {
 	slog.InfoContext(ctx, "Applying migrations", "num", len(migs)-1)
 	var version int64
-	if err := db.DB.QueryRowContext(ctx, "SELECT max(version) FROM VERSIONS").Scan(&version); err != nil {
+	if err := db.DB.QueryRowContext(
+		ctx, "SELECT max(version) FROM VERSIONS").Scan(&version); err != nil {
 		return fmt.Errorf("current migration version not found: %w", err)
 	}
 	slog.DebugContext(ctx, "current migration version", "version", version)
