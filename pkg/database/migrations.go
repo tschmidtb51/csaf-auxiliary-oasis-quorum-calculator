@@ -15,6 +15,7 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -76,7 +77,50 @@ func (m *migration) load(cfg *config.Database) (string, error) {
 	return script.String(), nil
 }
 
+func (db *Database) applyMigrations(ctx context.Context, cfg *config.Database, migs []migration) error {
+	slog.InfoContext(ctx, "Applying migrations", "num", len(migs)-1)
+	var version int64
+	if err := db.DB.QueryRowContext(ctx, "SELECT max(version) FROM VERSIONS").Scan(&version); err != nil {
+		return fmt.Errorf("current migration version not found: %w", err)
+	}
+	slog.DebugContext(ctx, "current migration version", "version", version)
+	for i := range migs {
+		mig := &migs[i]
+		if mig.version <= version {
+			continue
+		}
+		script, err := mig.load(cfg)
+		if err != nil {
+			return fmt.Errorf("loading migration %q failed: %w", mig.path, err)
+		}
+		slog.DebugContext(ctx, "applying migration", "path", mig.path)
+		tx, err := db.DB.BeginTx(ctx, nil)
+		if err != nil {
+			return fmt.Errorf("cannot start migrations: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, script); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("applying migration %q failed: %w", mig.path, err)
+		}
+		if _, err := tx.ExecContext(
+			ctx, "INSERT INTO versions (version, description) VALUES ($1, $2)",
+			mig.version, mig.description,
+		); err != nil {
+			tx.Rollback()
+			return fmt.Errorf(
+				"inserting version/description of migration %q failed: %w", mig.path, err)
+		}
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf(
+				"commiting transaction of migration %q failed: %w", mig.path, err)
+		}
+	}
+	slog.InfoContext(ctx, "All migrations applied")
+	return nil
+}
+
 func createDatabase(ctx context.Context, cfg *config.Database, db *sqlx.DB, migs []migration) error {
+	slog.InfoContext(ctx, "Creating database", "url", cfg.DatabaseURL)
 	script, err := migs[0].load(cfg)
 	if err != nil {
 		return err
@@ -96,7 +140,11 @@ func createDatabase(ctx context.Context, cfg *config.Database, db *sqlx.DB, migs
 	); err != nil {
 		return err
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	slog.InfoContext(ctx, "Creating database done", "url", cfg.DatabaseURL)
+	return nil
 }
 
 func listMigrations() ([]migration, error) {

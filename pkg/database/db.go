@@ -13,7 +13,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
@@ -72,16 +71,22 @@ func NewDatabase(ctx context.Context, cfg *config.Database) (*Database, error) {
 	}
 
 	if create {
-		slog.InfoContext(ctx, "Create database", "url", cfg.DatabaseURL)
 		if err := createDatabase(ctx, cfg, db, migs); err != nil {
 			return nil, fmt.Errorf("creating database %q failed: %w", url, err)
 		}
 		if cfg.TerminateAfterMigration {
 			return nil, ErrTerminateMigration
 		}
+		return &Database{DB: db}, nil
 	}
 
-	return &Database{DB: db}, nil
+	database := &Database{DB: db}
+
+	if err := database.applyMigrations(ctx, cfg, migs); err != nil {
+		return nil, err
+	}
+
+	return database, nil
 }
 
 // Close closes the connection pool.
