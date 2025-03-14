@@ -9,6 +9,7 @@
 package web
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
@@ -16,8 +17,11 @@ import (
 
 func (c *Controller) auth(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement me!
-	_ = w
-	_ = r
+	if err := c.tmpls.ExecuteTemplate(w, "index.tmpl", nil); err != nil {
+		slog.ErrorContext(r.Context(), "templating failed", "err", err)
+		http.Error(w, "templating failed", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (c *Controller) login(w http.ResponseWriter, r *http.Request) {

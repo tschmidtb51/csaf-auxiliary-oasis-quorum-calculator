@@ -56,7 +56,10 @@ func run(cfg *config.Config) error {
 	cleaner := auth.NewCleaner(cfg, db)
 	go cleaner.Run(ctx)
 
-	ctrl := web.NewController(cfg, db)
+	ctrl, err := web.NewController(cfg, db)
+	if err != nil {
+		return err
+	}
 
 	addr := cfg.Web.Addr()
 	slog.Info("Starting web server", "address", addr)

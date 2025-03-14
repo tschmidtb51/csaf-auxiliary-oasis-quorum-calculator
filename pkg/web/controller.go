@@ -10,7 +10,11 @@
 package web
 
 import (
+	"fmt"
+	"html/template"
+	"log/slog"
 	"net/http"
+	"path/filepath"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
@@ -19,19 +23,29 @@ import (
 
 // Controller binds the endpoints to the internal logic.
 type Controller struct {
-	cfg *config.Config
-	db  *database.Database
+	cfg   *config.Config
+	db    *database.Database
+	tmpls *template.Template
 }
 
 // NewController returns a new Controller.
 func NewController(
 	cfg *config.Config,
 	db *database.Database,
-) *Controller {
-	return &Controller{
-		cfg: cfg,
-		db:  db,
+) (*Controller, error) {
+
+	path := filepath.Join(cfg.Web.Root, "templates", "*.tmpl")
+
+	tmpls, err := template.New("index").ParseGlob(path)
+	if err != nil {
+		return nil, fmt.Errorf("loading templates failed: %w", err)
 	}
+
+	return &Controller{
+		cfg:   cfg,
+		db:    db,
+		tmpls: tmpls,
+	}, nil
 }
 
 func (c *Controller) home(w http.ResponseWriter, r *http.Request) {
@@ -49,6 +63,11 @@ func (c *Controller) Bind() http.Handler {
 	router.HandleFunc("/login", c.login)
 	router.HandleFunc("/logout", mw.Wrap(c.logout))
 	router.HandleFunc("/", mw.Wrap(c.home))
+
+	path := c.cfg.Web.Root
+	slog.Debug("static root", "path", path)
+	static := http.FileServer(http.Dir(path))
+	router.Handle("/static/", static)
 
 	// TODO: Implement me!
 	return router
