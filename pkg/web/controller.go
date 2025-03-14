@@ -47,7 +47,7 @@ func (c *Controller) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) logout(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement me!
+	auth.SessionFromContext(r.Context()).Delete()
 }
 
 // Bind return a http handler to be used in a web server.
