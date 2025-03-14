@@ -12,6 +12,7 @@ package web
 import (
 	"net/http"
 
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/database"
 )
@@ -33,9 +34,32 @@ func NewController(
 	}
 }
 
+func (c *Controller) home(w http.ResponseWriter, r *http.Request) {
+	// TODO: Implement me!
+}
+
+func (c *Controller) auth(w http.ResponseWriter, r *http.Request) {
+	// TODO: Implement me!
+}
+
+func (c *Controller) login(w http.ResponseWriter, r *http.Request) {
+	// TODO: Implement me!
+}
+
+func (c *Controller) logout(w http.ResponseWriter, r *http.Request) {
+	// TODO: Implement me!
+}
+
 // Bind return a http handler to be used in a web server.
 func (c *Controller) Bind() http.Handler {
 	router := http.NewServeMux()
+	mw := auth.NewMiddleware(c.cfg, c.db, "/auth")
+
+	router.HandleFunc("/auth", c.auth)
+	router.HandleFunc("/login", c.login)
+	router.HandleFunc("/logout", mw.Wrap(c.logout))
+	router.HandleFunc("/", mw.Wrap(c.home))
+
 	// TODO: Implement me!
 	return router
 }
