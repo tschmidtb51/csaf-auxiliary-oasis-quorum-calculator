@@ -36,18 +36,8 @@ func NewController(
 
 func (c *Controller) home(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement me!
-}
-
-func (c *Controller) auth(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement me!
-}
-
-func (c *Controller) login(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement me!
-}
-
-func (c *Controller) logout(w http.ResponseWriter, r *http.Request) {
-	auth.SessionFromContext(r.Context()).Delete()
+	_ = w
+	_ = r
 }
 
 // Bind return a http handler to be used in a web server.
