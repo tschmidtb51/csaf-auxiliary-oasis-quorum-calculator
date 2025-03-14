@@ -30,9 +30,9 @@ const (
 )
 
 const (
-	defaultWebHost   = "localhost"
-	defaultWebPort   = 8083
-	defaultWebStatic = "web"
+	defaultWebHost = "localhost"
+	defaultWebPort = 8083
+	defaultWebRoot = "web"
 )
 
 const (
@@ -56,9 +56,9 @@ type Log struct {
 
 // Web are the config options for the web interface.
 type Web struct {
-	Host   string `toml:"host"`
-	Port   int    `toml:"port"`
-	Static string `toml:"static"`
+	Host string `toml:"host"`
+	Port int    `toml:"port"`
+	Root string `toml:"root"`
 }
 
 // Database are the config options for the database.
@@ -97,9 +97,9 @@ func Load(file string) (*Config, error) {
 			JSON:   defaultLogJSON,
 		},
 		Web: Web{
-			Host:   defaultWebHost,
-			Port:   defaultWebPort,
-			Static: defaultWebStatic,
+			Host: defaultWebHost,
+			Port: defaultWebPort,
+			Root: defaultWebRoot,
 		},
 		Database: Database{
 			DatabaseURL:             defaultDatabaseURL,
@@ -152,7 +152,7 @@ func (cfg *Config) fillFromEnv() error {
 		envStore{"OQC_LOG_SOURCE", storeBool(&cfg.Log.Source)},
 		envStore{"OQC_WEB_HOST", storeString(&cfg.Web.Host)},
 		envStore{"OQC_WEB_PORT", storeInt(&cfg.Web.Port)},
-		envStore{"OQC_WEB_STATIC", storeString(&cfg.Web.Static)},
+		envStore{"OQC_WEB_ROOT", storeString(&cfg.Web.Root)},
 		envStore{"OQC_DB_URL", storeString(&cfg.Database.DatabaseURL)},
 		envStore{"OQC_DB_MIGRATE", storeBool(&cfg.Database.Migrate)},
 		envStore{"OQC_DB_TERMINATE_AFTER_MIGRATION", storeBool(&cfg.Database.TerminateAfterMigration)},
