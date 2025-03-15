@@ -59,9 +59,10 @@ func check(w http.ResponseWriter, r *http.Request, err error) bool {
 
 func (c *Controller) home(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement me!
-	if !check(w, r, c.tmpls.ExecuteTemplate(w, "index.tmpl", nil)) {
-		return
+	data := map[string]any{
+		"Session": auth.SessionFromContext(r.Context()),
 	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "index.tmpl", data))
 }
 
 // Bind return a http handler to be used in a web server.
@@ -74,9 +75,7 @@ func (c *Controller) Bind() http.Handler {
 	router.HandleFunc("/logout", mw.Wrap(c.logout))
 	router.HandleFunc("/", mw.Wrap(c.home))
 
-	path := c.cfg.Web.Root
-	slog.Debug("static root", "path", path)
-	static := http.FileServer(http.Dir(path))
+	static := http.FileServer(http.Dir(c.cfg.Web.Root))
 	router.Handle("/static/", static)
 
 	// TODO: Implement me!
