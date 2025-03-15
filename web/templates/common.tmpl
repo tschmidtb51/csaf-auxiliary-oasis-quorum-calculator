@@ -1,0 +1,32 @@
+{{- /*
+This file is Free Software under the Apache-2.0 License
+without warranty, see README.md and LICENSE for details.
+
+SPDX-License-Identifier: Apache-2.0
+
+SPDX-FileCopyrightText: 2025 German Federal Office for Information Security (BSI) <https://www.bsi.bund.de>
+Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
+*/ -}}
+{{- define "header" -}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/static/styles/simple.min.css">
+  <title>OQC - Oasis Quorum calculator</title>
+</head>
+<body>
+  <header>
+    <h1>OQC - Oasis Quorum calculator</h1>
+  </header>
+  <main>
+{{ end -}}
+{{- define "footer" }}
+  </main>
+  <footer>
+    <p>OCQ at <a href="https://github.com/csaf-auxiliary/oasis-quorum-calculator">GitHub</a></p>
+  </footer>
+</body>
+</html>
+{{- end -}}

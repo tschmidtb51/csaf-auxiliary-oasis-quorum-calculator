@@ -15,11 +15,23 @@ import (
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
 )
 
+func check(w http.ResponseWriter, r *http.Request, err error) bool {
+	if err != nil {
+		slog.ErrorContext(r.Context(), "internal error", "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return false
+	}
+	return true
+}
+
 func (c *Controller) auth(w http.ResponseWriter, r *http.Request) {
+
 	// TODO: Implement me!
-	if err := c.tmpls.ExecuteTemplate(w, "index.tmpl", nil); err != nil {
-		slog.ErrorContext(r.Context(), "templating failed", "err", err)
-		http.Error(w, "templating failed", http.StatusInternalServerError)
+	data := map[string]string{
+		//"error": "Login failed",
+		//"nickname": `alice`,
+	}
+	if !check(w, r, c.tmpls.ExecuteTemplate(w, "auth.tmpl", data)) {
 		return
 	}
 }

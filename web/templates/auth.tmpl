@@ -1,0 +1,21 @@
+{{- /*
+This file is Free Software under the Apache-2.0 License
+without warranty, see README.md and LICENSE for details.
+
+SPDX-License-Identifier: Apache-2.0
+
+SPDX-FileCopyrightText: 2025 German Federal Office for Information Security (BSI) <https://www.bsi.bund.de>
+Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
+*/ -}}
+{{ template "header" }}
+<h2>Login</h2>
+{{ if .error }}<p class="notice">{{ .error }}</p>{{ end }}
+<form action="/login" method="post" accept-charset="UTF-8">
+  <label for="nickname">User:</label> <input type="text" name="nickname"
+	 {{- if .nickname }} value="{{ .nickname }}"{{ else }} autofocus{{ end }}>
+  <br/>
+  <label for="password">Password:</label> <input type="password" name="password"
+	 {{- if .nickname }} autofocus{{ end }}><br>
+  <input type="submit" value="Login in">
+</form>
+{{ template "footer" }}
