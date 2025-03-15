@@ -48,10 +48,20 @@ func NewController(
 	}, nil
 }
 
+func check(w http.ResponseWriter, r *http.Request, err error) bool {
+	if err != nil {
+		slog.ErrorContext(r.Context(), "internal error", "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return false
+	}
+	return true
+}
+
 func (c *Controller) home(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement me!
-	_ = w
-	_ = r
+	if !check(w, r, c.tmpls.ExecuteTemplate(w, "index.tmpl", nil)) {
+		return
+	}
 }
 
 // Bind return a http handler to be used in a web server.

@@ -9,37 +9,54 @@
 package web
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
 )
 
-func check(w http.ResponseWriter, r *http.Request, err error) bool {
-	if err != nil {
-		slog.ErrorContext(r.Context(), "internal error", "error", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return false
+func (c *Controller) authFailed(w http.ResponseWriter, r *http.Request, nickname, msg string) {
+	data := map[string]string{
+		"nickname": nickname,
+		"error":    msg,
 	}
-	return true
+	check(w, r, c.tmpls.ExecuteTemplate(w, "auth.tmpl", data))
 }
 
 func (c *Controller) auth(w http.ResponseWriter, r *http.Request) {
-
-	// TODO: Implement me!
-	data := map[string]string{
-		//"error": "Login failed",
-		//"nickname": `alice`,
-	}
-	if !check(w, r, c.tmpls.ExecuteTemplate(w, "auth.tmpl", data)) {
-		return
-	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "auth.tmpl", nil))
 }
 
 func (c *Controller) login(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement me!
-	_ = w
-	_ = r
+	// Check if we are already logged in.
+	if auth.SessionFromContext(r.Context()) != nil {
+		c.home(w, r)
+		return
+	}
+	nickname := r.FormValue("nickname")
+	if nickname == "" {
+		c.authFailed(w, r, "", "Missing user name")
+		return
+	}
+	password := r.FormValue("password")
+	if password == "" {
+		c.authFailed(w, r, nickname, "Missing password")
+		return
+	}
+	session, err := auth.NewSession(
+		r.Context(),
+		c.cfg, c.db,
+		nickname, password)
+	if !check(w, r, err) {
+		return
+	}
+	if session == nil {
+		c.authFailed(w, r, nickname, "Login failed")
+		return
+	}
+	data := map[string]any{
+		"Session": session,
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "index.tmpl", data))
 }
 
 func (c *Controller) logout(_ http.ResponseWriter, r *http.Request) {

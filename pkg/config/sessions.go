@@ -51,13 +51,13 @@ func (s *Sessions) presetDefaults() {
 }
 
 // GenerateKey generates a new session key signed by the session secret.
-func (s *Sessions) GenerateKey() string {
+func (s *Sessions) GenerateKey() (string, string) {
 	key := make([]byte, 16)
 	rand.Read(key)
 	mac := hmac.New(sha1.New, s.Secret)
 	mac.Write(key)
 	sign := mac.Sum(nil)
-	return base64.URLEncoding.EncodeToString(key) + ":" + base64.URLEncoding.EncodeToString(sign)
+	return base64.URLEncoding.EncodeToString(key), base64.URLEncoding.EncodeToString(sign)
 }
 
 // CheckKey checks if the given key is a valid key signed by the session secret.
