@@ -12,14 +12,16 @@ import (
 	"bytes"
 	"cmp"
 	"context"
-	"crypto/rand"
+	crand "crypto/rand"
 	"crypto/sha256"
 	"embed"
 	"encoding/base64"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -65,11 +67,19 @@ const alphabet = "abcdefghijklmnopqrstuvwxyz" +
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
 	"0123456789"
 
+type cryptoSource struct{}
+
+func (cryptoSource) Uint64() uint64 {
+	var cs [8]byte
+	crand.Read(cs[:])
+	return binary.NativeEndian.Uint64(cs[:])
+}
+
 func randomString(n int) string {
+	rnd := rand.New(cryptoSource{})
 	out := make([]byte, n)
-	for x := out; len(x) > 0; x = x[1:] {
-		rand.Read(x[:1])
-		x[0] = alphabet[int(x[0])%len(alphabet)]
+	for i := range out {
+		out[i] = alphabet[rnd.IntN(len(alphabet))]
 	}
 	return string(out)
 }
@@ -85,7 +95,7 @@ func createFuncMap() template.FuncMap {
 			password := randomString(12)
 			raw := make([]byte, 4+sha256.Size)
 			salt := raw[:4]
-			rand.Read(salt)
+			crand.Read(salt)
 			hash := sha256.New()
 			hash.Write(salt)
 			io.WriteString(hash, password)
