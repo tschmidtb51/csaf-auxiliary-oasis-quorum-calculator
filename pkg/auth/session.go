@@ -13,7 +13,7 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"database/sql"
-	"encoding/hex"
+	"encoding/base64"
 	"errors"
 	"io"
 
@@ -59,7 +59,7 @@ func NewSession(
 	case err != nil:
 		return nil, err
 	}
-	raw, err := hex.DecodeString(dbPassword)
+	raw, err := base64.URLEncoding.DecodeString(dbPassword)
 	if err != nil {
 		return nil, err
 	}

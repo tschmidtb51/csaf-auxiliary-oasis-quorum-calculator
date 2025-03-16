@@ -14,16 +14,16 @@ CREATE TABLE versions (
 
 CREATE TABLE users (
     nickname  VARCHAR PRIMARY KEY,
-    password  text NOT NULL,
+    password  VARCHAR NOT NULL,
     firstname VARCHAR,
     lastname  VARCHAR,
     is_admin  BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE sessions (
+    token       VARCHAR   PRIMARY KEY,
     nickname    VARCHAR   NOT NULL REFERENCES users(nickname) ON DELETE CASCADE,
-    last_access timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    token       VARCHAR   NOT NULL UNIQUE
+    last_access timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE committees (

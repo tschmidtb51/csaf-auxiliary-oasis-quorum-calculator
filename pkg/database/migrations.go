@@ -15,7 +15,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"embed"
-	"encoding/hex"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -83,19 +83,19 @@ func createFuncMap() template.FuncMap {
 				return s
 			}
 			password := randomString(12)
-			stored := make([]byte, 4+sha256.Size)
-			salt := stored[:4]
+			raw := make([]byte, 4+sha256.Size)
+			salt := raw[:4]
 			rand.Read(salt)
 			hash := sha256.New()
 			hash.Write(salt)
 			io.WriteString(hash, password)
-			copy(stored[4:], hash.Sum(nil))
-			s := hex.EncodeToString(stored)
-			passwords[user] = s
+			copy(raw[4:], hash.Sum(nil))
+			stored := base64.URLEncoding.EncodeToString(raw)
+			passwords[user] = stored
 			slog.Info("Generated new password. Note it down to log in",
 				"user", user,
 				"password", password)
-			return s
+			return stored
 		},
 	}
 }
