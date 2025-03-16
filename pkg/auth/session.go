@@ -52,7 +52,8 @@ func NewSession(
 ) (*Session, error) {
 	var dbPassword string
 	const passwordSQL = `SELECT password FROM users WHERE nickname = $1`
-	switch err := db.DB.QueryRowContext(ctx, passwordSQL, nickname).Scan(&dbPassword); {
+	switch err := db.DB.QueryRowContext(
+		ctx, passwordSQL, nickname).Scan(&dbPassword); {
 	case errors.Is(err, sql.ErrNoRows):
 		return nil, nil
 	case err != nil:
@@ -71,7 +72,7 @@ func NewSession(
 	hash.Write(salt)
 	io.WriteString(hash, password)
 	hashed := hash.Sum(nil)
-	if subtle.ConstantTimeCompare(rest, hashed) != 0 {
+	if subtle.ConstantTimeCompare(rest, hashed) == 0 {
 		return nil, nil
 	}
 	// Create a new session.

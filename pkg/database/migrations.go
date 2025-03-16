@@ -83,12 +83,14 @@ func createFuncMap() template.FuncMap {
 				return s
 			}
 			password := randomString(12)
-			salt := make([]byte, 4)
+			stored := make([]byte, 4+sha256.Size)
+			salt := stored[:4]
+			rand.Read(salt)
 			hash := sha256.New()
 			hash.Write(salt)
 			io.WriteString(hash, password)
-			hashed := hash.Sum(nil)
-			s := hex.EncodeToString(hashed)
+			copy(stored[4:], hash.Sum(nil))
+			s := hex.EncodeToString(stored)
 			passwords[user] = s
 			slog.Info("Generated new password. Note it down to log in",
 				"user", user,
