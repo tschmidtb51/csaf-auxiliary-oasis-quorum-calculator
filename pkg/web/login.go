@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/models"
 )
 
 func (c *Controller) authFailed(w http.ResponseWriter, r *http.Request, nickname, msg string) {
@@ -28,7 +29,7 @@ func (c *Controller) auth(w http.ResponseWriter, r *http.Request) {
 
 func (c *Controller) login(w http.ResponseWriter, r *http.Request) {
 	// Check if we are already logged in.
-	if auth.SessionFromContext(r.Context()) != nil {
+	if auth.UserFromContext(r.Context()) != nil {
 		c.home(w, r)
 		return
 	}
@@ -53,8 +54,13 @@ func (c *Controller) login(w http.ResponseWriter, r *http.Request) {
 		c.authFailed(w, r, nickname, "Login failed")
 		return
 	}
+	user, err := models.LoadUser(r.Context(), c.db, nickname)
+	if !check(w, r, err) {
+		return
+	}
 	data := map[string]any{
 		"Session": session,
+		"User":    user,
 	}
 	check(w, r, c.tmpls.ExecuteTemplate(w, "index.tmpl", data))
 }

@@ -17,7 +17,7 @@ CREATE TABLE users (
     password  VARCHAR NOT NULL,
     firstname VARCHAR,
     lastname  VARCHAR,
-    is_admin  BOOLEAN DEFAULT FALSE
+    is_admin  BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE sessions (
@@ -44,10 +44,10 @@ INSERT INTO committee_role (id, name, description) VALUES
     (1, 'manager', 'Committee manager');
 
 CREATE TABLE committee_roles (
-    nickname         VARCHAR NOT NULL REFERENCES users(nickname)    ON DELETE CASCADE,
-    commitee_role_id INTEGER NOT NULL REFERENCES committee_role(id) ON DELETE CASCADE,
-    committees_id    INTEGER NOT NULL REFERENCES committees(id)     ON DELETE CASCADE,
-    UNIQUE(nickname, commitee_role_id, committees_id)
+    nickname          VARCHAR NOT NULL REFERENCES users(nickname)    ON DELETE CASCADE,
+    committee_role_id INTEGER NOT NULL REFERENCES committee_role(id) ON DELETE CASCADE,
+    committees_id     INTEGER NOT NULL REFERENCES committees(id)     ON DELETE CASCADE,
+    UNIQUE(nickname, committee_role_id, committees_id)
 );
 
 CREATE TABLE meeting (

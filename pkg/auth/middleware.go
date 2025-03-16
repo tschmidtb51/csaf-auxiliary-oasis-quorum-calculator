@@ -18,6 +18,7 @@ import (
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/database"
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/models"
 )
 
 // sessionParameter is the name of the sessionid.
@@ -30,9 +31,12 @@ type Middleware struct {
 	redirect string
 }
 
-type sessionKeyType int
+type contextKeyType int
 
-const sessionKey sessionKeyType = 0
+const (
+	sessionKey contextKeyType = iota
+	userKey
+)
 
 // NewMiddleware returns a new auth middleware.
 func NewMiddleware(cfg *config.Config, db *database.Database, redirect string) *Middleware {
@@ -52,8 +56,40 @@ func SessionFromContext(ctx context.Context) *Session {
 	return v.(*Session)
 }
 
-// Wrap wraps the middleware around the given next.
-func (mw *Middleware) Wrap(next http.HandlerFunc) http.HandlerFunc {
+// UserFromContext returns the user from the context.
+func UserFromContext(ctx context.Context) *models.User {
+	v := ctx.Value(userKey)
+	if v == nil {
+		return nil
+	}
+	return v.(*models.User)
+}
+
+// User loads the data of a logged in user and stores it in the context.
+func (mw *Middleware) User(next http.HandlerFunc) http.HandlerFunc {
+	return mw.LoggedIn(func(w http.ResponseWriter, r *http.Request) {
+		session := SessionFromContext(r.Context())
+		if session == nil {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+		user, err := models.LoadUser(r.Context(), mw.db, session.Nickname())
+		if err != nil {
+			slog.ErrorContext(r.Context(), "loading user failed", "error", err)
+			http.Error(w, "loading user failed", http.StatusInternalServerError)
+			return
+		}
+		if user == nil {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+		nctx := context.WithValue(r.Context(), userKey, user)
+		next(w, r.WithContext(nctx))
+	})
+}
+
+// LoggedIn wraps the middleware around the given next.
+func (mw *Middleware) LoggedIn(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID := r.FormValue(sessionParameter)
 		if sessionID == "" {

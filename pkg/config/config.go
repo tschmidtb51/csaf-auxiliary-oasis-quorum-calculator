@@ -132,6 +132,7 @@ func Load(file string) (*Config, error) {
 	return cfg, nil
 }
 
+// PresetDefaults initializes unset values.
 func (cfg *Config) PresetDefaults() {
 	cfg.Sessions.presetDefaults()
 }
