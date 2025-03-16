@@ -129,11 +129,10 @@ func Load(file string) (*Config, error) {
 	if err := cfg.fillFromEnv(); err != nil {
 		return nil, err
 	}
-	cfg.presetDefaults()
 	return cfg, nil
 }
 
-func (cfg *Config) presetDefaults() {
+func (cfg *Config) PresetDefaults() {
 	cfg.Sessions.presetDefaults()
 }
 
