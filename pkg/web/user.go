@@ -14,7 +14,22 @@ import (
 	"unicode/utf8"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/models"
 )
+
+func (c *Controller) users(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	users, err := models.LoadAllUsers(ctx, c.db)
+	if !check(w, r, err) {
+		return
+	}
+	data := map[string]any{
+		"Users":   users,
+		"Session": auth.SessionFromContext(ctx),
+		"User":    auth.UserFromContext(ctx),
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "users.tmpl", data))
+}
 
 func (c *Controller) user(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

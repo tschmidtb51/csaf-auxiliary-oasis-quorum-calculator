@@ -192,3 +192,31 @@ func (u *User) Store(ctx context.Context, db *database.Database) error {
 	}
 	return nil
 }
+
+// LoadAllUsers loads all user ordered by their nickname.
+func LoadAllUsers(ctx context.Context, db *database.Database) ([]*User, error) {
+	var users []*User
+	const loadSQL = `SELECT nickname, firstname, lastname, is_admin FROM users ` +
+		`ORDER BY nickname`
+	rows, err := db.DB.QueryContext(ctx, loadSQL)
+	if err != nil {
+		return nil, fmt.Errorf("loading users failed: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var user User
+		if err := rows.Scan(
+			&user.Nickname,
+			&user.Firstname,
+			&user.Lastname,
+			&user.IsAdmin,
+		); err != nil {
+			return nil, fmt.Errorf("scanning users failed: %w", err)
+		}
+		users = append(users, &user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("loading users failed: %w", err)
+	}
+	return users, nil
+}
