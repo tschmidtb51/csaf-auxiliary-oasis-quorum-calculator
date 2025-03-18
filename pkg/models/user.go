@@ -96,11 +96,15 @@ func (m *Membership) HasRole(role Role) bool {
 	return m != nil && slices.Contains(m.Roles, role)
 }
 
-// HasRoleString checks if the given string is a role and if
-// the membership has it.
-func (m *Membership) HasRoleString(role string) bool {
-	r, err := ParseRole(role)
-	return err == nil && m.HasRole(r)
+// CountMemberships count the memberships with a given role.
+func (u *User) CountMemberships(role Role) int {
+	count := 0
+	for _, m := range u.Memberships {
+		if m.HasRole(role) {
+			count++
+		}
+	}
+	return count
 }
 
 // SetPassword sets the password of the user.

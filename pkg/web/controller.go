@@ -19,6 +19,7 @@ import (
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/database"
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/models"
 )
 
 // Controller binds the endpoints to the internal logic.
@@ -26,6 +27,11 @@ type Controller struct {
 	cfg   *config.Config
 	db    *database.Database
 	tmpls *template.Template
+}
+
+// templateFuncs are the functions usable in the templates.
+var templateFuncs = template.FuncMap{
+	"Role": models.ParseRole,
 }
 
 // NewController returns a new Controller.
@@ -36,7 +42,7 @@ func NewController(
 
 	path := filepath.Join(cfg.Web.Root, "templates", "*.tmpl")
 
-	tmpls, err := template.New("index").ParseGlob(path)
+	tmpls, err := template.New("index").Funcs(templateFuncs).ParseGlob(path)
 	if err != nil {
 		return nil, fmt.Errorf("loading templates failed: %w", err)
 	}

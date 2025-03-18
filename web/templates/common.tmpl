@@ -19,6 +19,26 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 <body>
   <header>
     <h1>OQC - Oasis Quorum calculator</h1>
+    {{ if .Session }}
+    <nav>
+      {{ if .User }}
+        {{ if .User.IsAdmin }}
+          <a href="/users?SESSIONID={{ .Session.ID }}">users</a>
+          <a href="/committees?SESSIONID={{ .Session.ID }}">committees</a>
+        {{ end }}
+        {{ $manager := .User.CountMemberships (Role "manager") }}
+        {{ $member  := .User.CountMemberships (Role "member") }}
+        {{ if $manager }}
+          <a href="/manager?SESSIONID={{ .Session.ID }}">manager ({{ $manager }})</a>
+        {{ end }}
+        {{ if $member }}
+          <a href="/member?SESSIONID={{ .Session.ID }}">member ({{ $member }})</a>
+        {{ end }}
+        <a href="/me?SESSIONID={{ .Session.ID }}">me ({{ .User.Nickname }})</a>
+      {{ end }}
+      <a href="/logout?SESSIONID={{ .Session.ID }}">Logout</a>
+    </nav>
+    {{ end }}
   </header>
   <main>
 {{ end -}}
