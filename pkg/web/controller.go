@@ -110,6 +110,7 @@ func (c *Controller) Bind() http.Handler {
 	router.HandleFunc("/user", mw.User(c.user))
 	router.HandleFunc("/user_store", mw.User(c.userStore))
 
+	router.HandleFunc("/committee", mw.Admin(c.committee))
 	router.HandleFunc("/committees", mw.Admin(c.committees))
 	router.HandleFunc("/committees_store", mw.Admin(c.committeesStore))
 	router.HandleFunc("/committee_create", mw.Admin(c.committeeCreate))

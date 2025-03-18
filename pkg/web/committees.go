@@ -18,6 +18,12 @@ import (
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/models"
 )
 
+func (c *Controller) committee(w http.ResponseWriter, r *http.Request) {
+	// TODO: Implement me!
+	_ = w
+	_ = r
+}
+
 func (c *Controller) committees(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	committees, err := models.LoadCommittees(ctx, c.db)
