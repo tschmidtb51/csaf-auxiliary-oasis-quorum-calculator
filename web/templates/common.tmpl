@@ -35,7 +35,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
         {{ if $member }}
           <a href="/member?SESSIONID={{ .Session.ID }}">member ({{ $member }})</a>
         {{ end }}
-        <a href="/user?SESSIONID={{ .Session.ID }}">me ({{ .User.Nickname }})</a>
+        <a href="/user?SESSIONID={{ .Session.ID }}">me (<strong>{{ .User.Nickname }}</strong>)</a>
       {{ end }}
       <a href="/logout?SESSIONID={{ .Session.ID }}">Logout</a>
     </nav>
