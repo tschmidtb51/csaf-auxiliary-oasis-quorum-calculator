@@ -10,6 +10,7 @@ package web
 
 import (
 	"net/http"
+	"unicode/utf8"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
 )
@@ -56,7 +57,7 @@ func (c *Controller) userStore(w http.ResponseWriter, r *http.Request) {
 			errMsg = "Password and confirmation do not match."
 			goto renderTemplate
 		}
-		if len([]rune(password)) < 8 {
+		if utf8.RuneCountInString(password) < 8 {
 			errMsg = "Password too short (need at least 8 characters)"
 			goto renderTemplate
 		}

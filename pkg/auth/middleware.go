@@ -88,6 +88,17 @@ func (mw *Middleware) User(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
+// Admin only allows the given handler to be called if the user is an admin.
+func (mw *Middleware) Admin(next http.HandlerFunc) http.HandlerFunc {
+	return mw.User(func(w http.ResponseWriter, r *http.Request) {
+		if user := UserFromContext(r.Context()); user == nil || !user.IsAdmin {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+		next(w, r)
+	})
+}
+
 // LoggedIn wraps the middleware around the given next.
 func (mw *Middleware) LoggedIn(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

@@ -53,13 +53,6 @@ func (r Role) String() string {
 	}
 }
 
-// Committee represents a committee.
-type Committee struct {
-	ID          int64
-	Name        string
-	Description *string
-}
-
 // Membership is the membership of a user in a committee.
 type Membership struct {
 	Committee *Committee

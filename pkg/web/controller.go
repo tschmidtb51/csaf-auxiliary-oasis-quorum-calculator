@@ -15,6 +15,8 @@ import (
 	"log/slog"
 	"net/http"
 	"path/filepath"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
@@ -29,9 +31,19 @@ type Controller struct {
 	tmpls *template.Template
 }
 
+func shorten(s string) string {
+	s = strings.TrimSpace(s)
+	if utf8.RuneCountInString(s) > 40 {
+		runes := []rune(s)
+		return string(runes[:37]) + "..."
+	}
+	return s
+}
+
 // templateFuncs are the functions usable in the templates.
 var templateFuncs = template.FuncMap{
-	"Role": models.ParseRole,
+	"Role":    models.ParseRole,
+	"Shorten": shorten,
 }
 
 // NewController returns a new Controller.
@@ -85,6 +97,8 @@ func (c *Controller) Bind() http.Handler {
 
 	router.HandleFunc("/user", mw.User(c.user))
 	router.HandleFunc("/user_store", mw.User(c.userStore))
+
+	router.HandleFunc("/committees", mw.Admin(c.committees))
 
 	static := http.FileServer(http.Dir(c.cfg.Web.Root))
 	router.Handle("/static/", static)
