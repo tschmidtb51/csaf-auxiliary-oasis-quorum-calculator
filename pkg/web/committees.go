@@ -30,17 +30,21 @@ func (c *Controller) committees(w http.ResponseWriter, r *http.Request) {
 	check(w, r, c.tmpls.ExecuteTemplate(w, "committees.tmpl", data))
 }
 
+func int64sFromStrings(s []string) []int64 {
+	var ints []int64
+	for _, v := range s {
+		if id, err := strconv.ParseInt(v, 10, 64); err == nil {
+			ints = append(ints, id)
+		}
+	}
+	return ints
+}
+
 func (c *Controller) committeesStore(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("delete") != "" {
 		committees := r.Form["committees"]
-		var ids []int64
-		for _, v := range committees {
-			if id, err := strconv.ParseInt(v, 10, 64); err == nil {
-				ids = append(ids, id)
-			}
-		}
-		if len(ids) > 0 && !check(w, r,
-			models.DeleteCommitteesByID(r.Context(), c.db, ids...)) {
+		if ids := int64sFromStrings(committees); len(ids) > 0 &&
+			!check(w, r, models.DeleteCommitteesByID(r.Context(), c.db, ids...)) {
 			return
 		}
 	}
