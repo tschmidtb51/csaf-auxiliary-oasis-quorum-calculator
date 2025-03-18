@@ -15,8 +15,6 @@ import (
 	"log/slog"
 	"net/http"
 	"path/filepath"
-	"strings"
-	"unicode/utf8"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
@@ -29,27 +27,6 @@ type Controller struct {
 	cfg   *config.Config
 	db    *database.Database
 	tmpls *template.Template
-}
-
-func shorten(v any) string {
-	var s string
-	switch x := v.(type) {
-	case *string:
-		if x == nil {
-			return ""
-		}
-		s = *x
-	case string:
-		s = x
-	default:
-		return ""
-	}
-	s = strings.TrimSpace(s)
-	if utf8.RuneCountInString(s) > 40 {
-		runes := []rune(s)
-		return string(runes[:37]) + "..."
-	}
-	return s
 }
 
 // templateFuncs are the functions usable in the templates.

@@ -25,23 +25,6 @@ func (c *Controller) user(w http.ResponseWriter, r *http.Request) {
 	check(w, r, c.tmpls.ExecuteTemplate(w, "user.tmpl", data))
 }
 
-func changer() (func(**string, string), *bool) {
-	changed := false
-	return func(s **string, v string) {
-		switch {
-		case v == "" && *s == nil:
-			return
-		case v != "" && *s != nil && v == **s:
-			return
-		case v == "" && *s != nil:
-			*s = nil
-		default:
-			*s = &v
-		}
-		changed = true
-	}, &changed
-}
-
 func (c *Controller) userStore(w http.ResponseWriter, r *http.Request) {
 	var (
 		firstname       = strings.TrimSpace(r.FormValue("firstname"))
