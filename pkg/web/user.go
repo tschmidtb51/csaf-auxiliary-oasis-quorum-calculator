@@ -10,6 +10,7 @@ package web
 
 import (
 	"net/http"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -78,4 +79,16 @@ renderTemplate:
 		data["Error"] = errMsg
 	}
 	check(w, r, c.tmpls.ExecuteTemplate(w, "user.tmpl", data))
+}
+
+func (c *Controller) usersStore(w http.ResponseWriter, r *http.Request) {
+	if r.FormValue("delete") != "" {
+		if users := slices.DeleteFunc(
+			r.Form["users"],
+			func(u string) bool { return u == "admin" }); len(users) > 0 &&
+			!check(w, r, models.DeleteUsersByNickname(r.Context(), c.db, users...)) {
+			return
+		}
+	}
+	c.users(w, r)
 }
