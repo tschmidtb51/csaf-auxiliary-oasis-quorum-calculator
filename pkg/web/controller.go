@@ -83,6 +83,9 @@ func (c *Controller) Bind() http.Handler {
 	router.HandleFunc("/logout", mw.LoggedIn(c.logout))
 	router.HandleFunc("/", mw.User(c.home))
 
+	router.HandleFunc("/user", mw.User(c.user))
+	router.HandleFunc("/user_store", mw.User(c.userStore))
+
 	static := http.FileServer(http.Dir(c.cfg.Web.Root))
 	router.Handle("/static/", static)
 
