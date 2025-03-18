@@ -51,7 +51,7 @@ func NewSession(
 	nickname, password string,
 ) (*Session, error) {
 	var dbPassword string
-	const passwordSQL = `SELECT password FROM users WHERE nickname = $1`
+	const passwordSQL = `SELECT password FROM users WHERE nickname = ?`
 	switch err := db.DB.QueryRowContext(
 		ctx, passwordSQL, nickname).Scan(&dbPassword); {
 	case errors.Is(err, sql.ErrNoRows):
@@ -77,7 +77,7 @@ func NewSession(
 	}
 	// Create a new session.
 	stored, sign := cfg.Sessions.GenerateKey()
-	const insertSQL = `INSERT INTO sessions (nickname, token) VALUES ($1, $2)`
+	const insertSQL = `INSERT INTO sessions (nickname, token) VALUES (?, ?)`
 	if _, err := db.DB.ExecContext(ctx, insertSQL, nickname, stored); err != nil {
 		return nil, err
 	}

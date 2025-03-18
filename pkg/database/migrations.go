@@ -84,6 +84,18 @@ func randomString(n int) string {
 	return string(out)
 }
 
+// EncodePassword encodes a password to be stored in the database.
+func EncodePassword(password string) string {
+	raw := make([]byte, 4+sha256.Size)
+	salt := raw[:4]
+	crand.Read(salt)
+	hash := sha256.New()
+	hash.Write(salt)
+	io.WriteString(hash, password)
+	copy(raw[4:], hash.Sum(nil))
+	return base64.URLEncoding.EncodeToString(raw)
+}
+
 func createFuncMap() template.FuncMap {
 	passwords := map[string]string{}
 	return template.FuncMap{
@@ -93,19 +105,12 @@ func createFuncMap() template.FuncMap {
 				return s
 			}
 			password := randomString(12)
-			raw := make([]byte, 4+sha256.Size)
-			salt := raw[:4]
-			crand.Read(salt)
-			hash := sha256.New()
-			hash.Write(salt)
-			io.WriteString(hash, password)
-			copy(raw[4:], hash.Sum(nil))
-			stored := base64.URLEncoding.EncodeToString(raw)
-			passwords[user] = stored
+			encoded := EncodePassword(password)
+			passwords[user] = encoded
 			slog.Info("Generated new password. Note it down to log in",
 				"user", user,
 				"password", password)
-			return stored
+			return encoded
 		},
 	}
 }
@@ -154,7 +159,7 @@ func (db *Database) applyMigrations(ctx context.Context, cfg *config.Database, m
 			return fmt.Errorf("applying migration %q failed: %w", mig.path, err)
 		}
 		if _, err := tx.ExecContext(
-			ctx, "INSERT INTO versions (version, description) VALUES ($1, $2)",
+			ctx, "INSERT INTO versions (version, description) VALUES (?, ?)",
 			mig.version, mig.description,
 		); err != nil {
 			tx.Rollback()
@@ -185,7 +190,7 @@ func createDatabase(ctx context.Context, cfg *config.Database, db *sqlx.DB, migs
 		return err
 	}
 	if _, err := tx.ExecContext(ctx,
-		"INSERT INTO versions (version, description) VALUES ($1, $2)",
+		"INSERT INTO versions (version, description) VALUES (?, ?)",
 		migs[len(migs)-1].version,
 		migs[len(migs)-1].description,
 	); err != nil {

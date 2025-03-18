@@ -73,7 +73,7 @@ type User struct {
 	Lastname    *string
 	IsAdmin     bool
 	Memberships []*Membership
-	password    *string
+	Password    *string
 }
 
 // IsMember returns true if user is member of a committee with a given name.
@@ -107,18 +107,6 @@ func (u *User) CountMemberships(role Role) int {
 	return count
 }
 
-// SetPassword sets the password of the user.
-func (u *User) SetPassword(password string) {
-	if u.password == nil || *u.password != password {
-		u.password = &password
-	}
-}
-
-// PasswordChanged returns true if the password has changed.
-func (u *User) PasswordChanged() bool {
-	return u.password != nil
-}
-
 // LoadUser loads a user with a given nickname from the database.
 func LoadUser(ctx context.Context, db *database.Database, nickname string) (*User, error) {
 
@@ -132,7 +120,7 @@ func LoadUser(ctx context.Context, db *database.Database, nickname string) (*Use
 	user := User{Nickname: nickname}
 	const userSQL = `SELECT firstname, lastname, is_admin ` +
 		`FROM users ` +
-		`WHERE nickname = $1`
+		`WHERE nickname = ?`
 
 	switch err := tx.QueryRowContext(ctx, userSQL, nickname).Scan(
 		&user.Firstname,
@@ -149,7 +137,7 @@ func LoadUser(ctx context.Context, db *database.Database, nickname string) (*Use
 	const committeeRolesSQL = `SELECT committee_role_id, committees_id, name, description ` +
 		`FROM committee_roles JOIN committees ` +
 		`ON committee_roles.committee_role_id = committees.id ` +
-		`WHERE nickname = $1 ` +
+		`WHERE nickname = ? ` +
 		`ORDER BY committees_id, committee_role_id`
 
 	rows, err := tx.QueryContext(ctx, committeeRolesSQL, nickname)
@@ -186,4 +174,28 @@ func LoadUser(ctx context.Context, db *database.Database, nickname string) (*Use
 	}
 
 	return &user, nil
+}
+
+// Store updates user in the database.
+func (u *User) Store(ctx context.Context, db *database.Database) error {
+	var sets []string
+	var args []any
+	add := func(s string, arg any) {
+		sets = append(sets, fmt.Sprintf("%s=?", s))
+		args = append(args, arg)
+	}
+	add("firstname", u.Firstname)
+	add("lastname", u.Lastname)
+	if u.Password != nil {
+		encoded := database.EncodePassword(*u.Password)
+		add("password", encoded)
+	}
+	args = append(args, u.Nickname)
+	updates := strings.Join(sets, ",")
+	const storeSQL = `UPDATE users SET %s WHERE nickname=?`
+	sql := fmt.Sprintf(storeSQL, updates)
+	if _, err := db.DB.ExecContext(ctx, sql, args...); err != nil {
+		return fmt.Errorf("storing user failed: %w", err)
+	}
+	return nil
 }

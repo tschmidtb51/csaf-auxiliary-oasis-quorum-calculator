@@ -106,7 +106,7 @@ func (mw *Middleware) LoggedIn(next http.HandlerFunc) http.HandlerFunc {
 			lastAccess time.Time
 		)
 		const userSQL = `SELECT nickname, last_access FROM sessions ` +
-			`WHERE token = $1`
+			`WHERE token = ?`
 
 		switch err := mw.db.DB.QueryRowContext(r.Context(), userSQL, token).Scan(
 			&user,
@@ -132,10 +132,10 @@ func (mw *Middleware) LoggedIn(next http.HandlerFunc) http.HandlerFunc {
 		defer func() {
 			var sql string
 			if session.delete {
-				sql = `DELETE FROM sessions WHERE token = $1`
+				sql = `DELETE FROM sessions WHERE token = ?`
 			} else {
 				sql = `UPDATE sessions SET last_access = current_timestamp ` +
-					`WHERE token = $1`
+					`WHERE token = ?`
 			}
 			if _, err := mw.db.DB.ExecContext(r.Context(), sql, token); err != nil {
 				slog.ErrorContext(r.Context(),

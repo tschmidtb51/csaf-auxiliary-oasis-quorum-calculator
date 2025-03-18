@@ -52,7 +52,7 @@ func (c *Cleaner) Run(ctx context.Context) {
 // cleanup removes stalled sessions from the database.
 func (c *Cleaner) cleanup(now time.Time) {
 	expired := now.Add(-c.cfg.Sessions.MaxAge)
-	const deleteSQL = `DELETE FROM sessions WHERE unixepoch(last_access) < unixepoch($1)`
+	const deleteSQL = `DELETE FROM sessions WHERE unixepoch(last_access) < unixepoch(?)`
 	res, err := c.db.DB.Exec(deleteSQL, expired)
 	if err != nil {
 		slog.Error("cleaning session failed", "error", err)

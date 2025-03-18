@@ -22,9 +22,9 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <input type="text" id="lastname" name="lastname"
       {{ if .User.Lastname }}value="{{ .User.Lastname }}"{{ end }}><br>
     <label for="password">Password:</label>
-    <input type="password" placeholder="*****" id="password" name="password">
-    <label for="password_confirm">Confirm password:</label>
-    <input type="password" placeholder="*****" id="password_confirm" name="password_confirm">
+    <input type="password" placeholder="********" id="password" name="password">
+    <label for="password2">Confirm password:</label>
+    <input type="password" placeholder="********" id="password2" name="password2">
     <br><br>
     <input type="hidden" name="SESSIONID" value="{{ .Session.ID }}">
     <input type="submit" value="save">
