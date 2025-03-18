@@ -99,6 +99,7 @@ func (c *Controller) Bind() http.Handler {
 	router.HandleFunc("/user_store", mw.User(c.userStore))
 
 	router.HandleFunc("/committees", mw.Admin(c.committees))
+	router.HandleFunc("/committees_store", mw.Admin(c.committeesStore))
 
 	static := http.FileServer(http.Dir(c.cfg.Web.Root))
 	router.Handle("/static/", static)

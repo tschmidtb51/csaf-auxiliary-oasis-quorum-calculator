@@ -22,6 +22,22 @@ type Committee struct {
 	Description *string
 }
 
+// DeleteCommitteesByID deletes a list of committees by their ids.
+func DeleteCommitteesByID(ctx context.Context, db *database.Database, ids ...int64) error {
+	tx, err := db.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	const deleteSQL = `DELETE FROM committees WHERE id = ?`
+	for _, id := range ids {
+		if _, err := tx.ExecContext(ctx, deleteSQL, id); err != nil {
+			return fmt.Errorf("deleting committee failed: %w", err)
+		}
+	}
+	return tx.Commit()
+}
+
 // LoadCommittees loads all committees ordered by name.
 func LoadCommittees(ctx context.Context, db *database.Database) ([]*Committee, error) {
 	const loadSQL = `SELECT id, name, description FROM committees ` +

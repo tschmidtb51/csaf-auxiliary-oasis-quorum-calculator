@@ -10,6 +10,7 @@ package web
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/models"
@@ -27,4 +28,21 @@ func (c *Controller) committees(w http.ResponseWriter, r *http.Request) {
 		"Committees": committees,
 	}
 	check(w, r, c.tmpls.ExecuteTemplate(w, "committees.tmpl", data))
+}
+
+func (c *Controller) committeesStore(w http.ResponseWriter, r *http.Request) {
+	if r.FormValue("delete") != "" {
+		committees := r.Form["committees"]
+		var ids []int64
+		for _, v := range committees {
+			if id, err := strconv.ParseInt(v, 10, 64); err == nil {
+				ids = append(ids, id)
+			}
+		}
+		if len(ids) > 0 && !check(w, r,
+			models.DeleteCommitteesByID(r.Context(), c.db, ids...)) {
+			return
+		}
+	}
+	c.committees(w, r)
 }

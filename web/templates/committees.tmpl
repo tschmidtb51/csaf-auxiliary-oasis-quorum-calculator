@@ -12,7 +12,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 <a href="/create_committee?SESSIONID={{ $sessionID }}">Create new committee</a>
 <h3>Available committees</h3>
 {{ if .Committees }}
-<form action="/committees_store?SESSIONID={{ $sessionID }}" accept-charset="UTF-8">
+<form action="/committees_store?SESSIONID={{ $sessionID }}" method="post" accept-charset="UTF-8">
 <table>
   <thead>
     <tr>
@@ -24,7 +24,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   <tbody>
   {{ range .Committees }}
     <tr>
-      <td><input type="checkbox" name="action" id="check{{ .ID }}"></td>
+      <td><input type="checkbox" name="committees" id="check{{ .ID }}" value="{{ .ID }}"></td>
       <td><a href="/committee?SESSIONID={{ $sessionID }}&id={{ .ID }}">{{ .Name }}</a></td>
       <td>{{ .Description | Shorten }}</td>
     </tr>
