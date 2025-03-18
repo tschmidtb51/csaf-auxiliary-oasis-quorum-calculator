@@ -51,3 +51,8 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 </body>
 </html>
 {{- end -}}
+{{ define "error" -}}
+{{ if .Error -}}
+<p class="notice"><strong>Error:</strong> {{ .Error }}</p>
+{{ end }}
+{{- end -}}

@@ -60,3 +60,38 @@ func LoadCommittees(ctx context.Context, db *database.Database) ([]*Committee, e
 	}
 	return committees, nil
 }
+
+// CreateCommittee creates a new committee.
+func CreateCommittee(
+	ctx context.Context, db *database.Database,
+	name string,
+	description *string,
+) (*Committee, error) {
+	tx, err := db.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	var exists bool
+	const existsSQL = `SELECT EXISTS(SELECT 1 FROM committees WHERE name = ?)`
+	if err := tx.QueryRowContext(ctx, existsSQL, name).Scan(&exists); err != nil {
+		return nil, fmt.Errorf("checking committee for existance failed: %w", err)
+	}
+	if exists {
+		return nil, nil
+	}
+	const insertSQL = `INSERT INTO committees (name, description) VALUES (?, ?) ` +
+		`RETURNING id`
+	var id int64
+	if err := tx.QueryRowContext(ctx, insertSQL, name, description).Scan(&id); err != nil {
+		return nil, fmt.Errorf("inserting committee failed: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("committing committee failed: %w", err)
+	}
+	return &Committee{
+		ID:          id,
+		Name:        name,
+		Description: description,
+	}, nil
+}

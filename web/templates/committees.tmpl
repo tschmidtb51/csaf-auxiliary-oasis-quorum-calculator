@@ -9,8 +9,8 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 */ -}}
 {{ template "header" . }}
 {{ $sessionID := .Session.ID }}
-<a href="/create_committee?SESSIONID={{ $sessionID }}">Create new committee</a>
-<h3>Available committees</h3>
+<a href="/committee_create?SESSIONID={{ $sessionID }}">Create new committee</a>
+<p>Committees:</p>
 {{ if .Committees }}
 <form action="/committees_store?SESSIONID={{ $sessionID }}" method="post" accept-charset="UTF-8">
 <table>
@@ -36,4 +36,3 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 </form>
 {{ end }}
 {{ template "footer" }}
-

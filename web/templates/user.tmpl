@@ -8,9 +8,7 @@ SPDX-FileCopyrightText: 2025 German Federal Office for Information Security (BSI
 Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 */ -}}
 {{ template "header" . }}
-{{ if .Error }}
-<p class="notice"><strong>Error:</strong> {{ .Error }}</p>
-{{ end }}
+{{ template "error" . }}
 <article>
   <form action="/user_store" method="post" accept-charset="UTF-8">
     Login name: <strong>{{ .User.Nickname }}</strong>
@@ -27,8 +25,8 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <input type="password" placeholder="********" id="password2" name="password2">
     <br><br>
     <input type="hidden" name="SESSIONID" value="{{ .Session.ID }}">
-    <input type="submit" value="save">
-    <input type="reset" value="reset">
+    <input type="submit" value="Save">
+    <input type="reset" value="Reset">
   </form>
 </article>
 {{ template "footer" }}

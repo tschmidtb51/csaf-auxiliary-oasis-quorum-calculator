@@ -9,8 +9,10 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/models"
@@ -49,4 +51,59 @@ func (c *Controller) committeesStore(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	c.committees(w, r)
+}
+
+func (c *Controller) committeeCreate(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	data := map[string]any{
+		"Session": auth.SessionFromContext(ctx),
+		"User":    auth.UserFromContext(ctx),
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "committee_create.tmpl", data))
+}
+
+func nilString(s string) *string {
+	if s != "" {
+		return &s
+	}
+	return nil
+}
+
+func (c *Controller) committeeStore(w http.ResponseWriter, r *http.Request) {
+	var (
+		name        = strings.TrimSpace(r.FormValue("name"))
+		description = nilString(strings.TrimSpace(r.FormValue("description")))
+		committee   *models.Committee
+		err         error
+		errMsg      string
+		ctx         = r.Context()
+	)
+	if name == "" {
+		errMsg = "Name is missing."
+		goto renderTemplate
+	}
+
+	committee, err = models.CreateCommittee(ctx, c.db, name, description)
+	if !check(w, r, err) {
+		return
+	}
+	if committee == nil {
+		errMsg = fmt.Sprintf("Committee %q already exists.", name)
+		goto renderTemplate
+	}
+	// Return to committee listing
+	c.committees(w, r)
+	return
+
+renderTemplate:
+	data := map[string]any{
+		"Name":        name,
+		"Description": description,
+		"Session":     auth.SessionFromContext(ctx),
+		"User":        auth.UserFromContext(ctx),
+	}
+	if errMsg != "" {
+		data["Error"] = errMsg
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "committee_create.tmpl", data))
 }

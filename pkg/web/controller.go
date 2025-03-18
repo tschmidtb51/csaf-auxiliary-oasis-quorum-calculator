@@ -31,7 +31,19 @@ type Controller struct {
 	tmpls *template.Template
 }
 
-func shorten(s string) string {
+func shorten(v any) string {
+	var s string
+	switch x := v.(type) {
+	case *string:
+		if x == nil {
+			return ""
+		}
+		s = *x
+	case string:
+		s = x
+	default:
+		return ""
+	}
 	s = strings.TrimSpace(s)
 	if utf8.RuneCountInString(s) > 40 {
 		runes := []rune(s)
@@ -100,6 +112,8 @@ func (c *Controller) Bind() http.Handler {
 
 	router.HandleFunc("/committees", mw.Admin(c.committees))
 	router.HandleFunc("/committees_store", mw.Admin(c.committeesStore))
+	router.HandleFunc("/committee_create", mw.Admin(c.committeeCreate))
+	router.HandleFunc("/committee_store", mw.Admin(c.committeeStore))
 
 	static := http.FileServer(http.Dir(c.cfg.Web.Root))
 	router.Handle("/static/", static)

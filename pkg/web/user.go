@@ -10,6 +10,7 @@ package web
 
 import (
 	"net/http"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
@@ -24,15 +25,9 @@ func (c *Controller) user(w http.ResponseWriter, r *http.Request) {
 	check(w, r, c.tmpls.ExecuteTemplate(w, "user.tmpl", data))
 }
 
-func (c *Controller) userStore(w http.ResponseWriter, r *http.Request) {
-	var (
-		firstname       = r.FormValue("firstname")
-		lastname        = r.FormValue("lastname")
-		password        = r.FormValue("password")
-		passwordConfirm = r.FormValue("password2")
-	)
+func changer() (func(**string, string), *bool) {
 	changed := false
-	change := func(s **string, v string) {
+	return func(s **string, v string) {
 		switch {
 		case v == "" && *s == nil:
 			return
@@ -44,7 +39,17 @@ func (c *Controller) userStore(w http.ResponseWriter, r *http.Request) {
 			*s = &v
 		}
 		changed = true
-	}
+	}, &changed
+}
+
+func (c *Controller) userStore(w http.ResponseWriter, r *http.Request) {
+	var (
+		firstname       = strings.TrimSpace(r.FormValue("firstname"))
+		lastname        = strings.TrimSpace(r.FormValue("lastname"))
+		password        = strings.TrimSpace(r.FormValue("password"))
+		passwordConfirm = strings.TrimSpace(r.FormValue("password2"))
+	)
+	change, changed := changer()
 
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
@@ -63,7 +68,7 @@ func (c *Controller) userStore(w http.ResponseWriter, r *http.Request) {
 		}
 		change(&user.Password, password)
 	}
-	if changed && !check(w, r, user.Store(ctx, c.db)) {
+	if *changed && !check(w, r, user.Store(ctx, c.db)) {
 		return
 	}
 renderTemplate:
