@@ -30,11 +30,16 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <input type="reset" value="Reset">
   </form>
 </article>
-{{- if not .NewUser.IsAdmin }}
+{{- if and (not .NewUser.IsAdmin) .Committees }}
 <article>
   Committees:
-  {{ template "committees" .NewUser }}
-  <p><a href="/user_committees_edit=?SESSIONID={{ .Session.ID }}&nickname={{ .NewUser.Nickname }}">Edit</a></p>
+  <form action="/user_committees_store" method="post" accept-charset="UTF-8">
+  {{ template "user_committees" Args "Committees" .Committees "User" .NewUser }}
+    <input type="hidden" name="nickname" value="{{ .NewUser.Nickname }}">
+    <input type="hidden" name="SESSIONID" value="{{ .Session.ID }}">
+    <input type="submit" value="Save">
+    <input type="reset" value="Reset">
+  </form>
 </article>
 {{ end -}}
 {{ template "footer" }}

@@ -41,6 +41,7 @@ func (td templateData) error(msg string) {
 var templateFuncs = template.FuncMap{
 	"Role":    models.ParseRole,
 	"Shorten": shorten,
+	"Args":    args,
 }
 
 // NewController returns a new Controller.
@@ -98,6 +99,7 @@ func (c *Controller) Bind() http.Handler {
 	router.HandleFunc("/user_edit", mw.Admin(c.userEdit))
 	router.HandleFunc("/user_edit_store", mw.Admin(c.userEditStore))
 	router.HandleFunc("/user_create_store", mw.Admin(c.userCreateStore))
+	router.HandleFunc("/user_committees_store", mw.Admin(c.userCommitteesStore))
 	router.HandleFunc("/users", mw.Admin(c.users))
 	router.HandleFunc("/users_store", mw.Admin(c.usersStore))
 

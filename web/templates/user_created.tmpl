@@ -38,6 +38,17 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     </tbody>
     {{ end }}
   </table>
-  <a href="/create_user?SESSIONID={{ $sessionID }}">Create another user</a>
 </article>
+{{- if and (not .NewUser.IsAdmin) .Committees }}
+<article>
+  Committees:
+  <form action="/user_committees_store" method="post" accept-charset="UTF-8">
+  {{ template "user_committees" Args "Committees" .Committees "User" .NewUser }}
+    <input type="hidden" name="nickname" value="{{ .NewUser.Nickname }}">
+    <input type="hidden" name="SESSIONID" value="{{ .Session.ID }}">
+    <input type="submit" value="Save">
+    <input type="reset" value="Reset">
+  </form>
+</article>
+{{ end -}}
 {{ template "footer" }}

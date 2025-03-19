@@ -10,8 +10,11 @@ package web
 
 import (
 	"fmt"
+	"maps"
 	"net/http"
+	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -109,10 +112,15 @@ func (c *Controller) userCreateStore(w http.ResponseWriter, r *http.Request) {
 		IsAdmin:   r.FormValue("admin") == "admin",
 	}
 	ctx := r.Context()
+	committees, err := models.LoadCommittees(ctx, c.db)
+	if !check(w, r, err) {
+		return
+	}
 	data := templateData{
-		"Session": auth.SessionFromContext(ctx),
-		"User":    auth.UserFromContext(ctx),
-		"NewUser": &nuser,
+		"Session":    auth.SessionFromContext(ctx),
+		"User":       auth.UserFromContext(ctx),
+		"NewUser":    &nuser,
+		"Committees": committees,
 	}
 	if nuser.Nickname == "" {
 		data.error("Login name is missing.")
@@ -143,10 +151,15 @@ func (c *Controller) userEdit(w http.ResponseWriter, r *http.Request) {
 		c.users(w, r)
 		return
 	}
+	committees, err := models.LoadCommittees(ctx, c.db)
+	if !check(w, r, err) {
+		return
+	}
 	data := templateData{
-		"Session": auth.SessionFromContext(ctx),
-		"User":    auth.UserFromContext(ctx),
-		"NewUser": user,
+		"Session":    auth.SessionFromContext(ctx),
+		"User":       auth.UserFromContext(ctx),
+		"NewUser":    user,
+		"Committees": committees,
 	}
 	check(w, r, c.tmpls.ExecuteTemplate(w, "user_edit.tmpl", data))
 }
@@ -174,10 +187,16 @@ func (c *Controller) userEditStore(w http.ResponseWriter, r *http.Request) {
 	change(&user.Firstname, firstname)
 	change(&user.Lastname, lastname)
 
+	committees, err := models.LoadCommittees(ctx, c.db)
+	if !check(w, r, err) {
+		return
+	}
+
 	data := templateData{
-		"Session": auth.SessionFromContext(ctx),
-		"User":    auth.UserFromContext(ctx),
-		"NewUser": user,
+		"Session":    auth.SessionFromContext(ctx),
+		"User":       auth.UserFromContext(ctx),
+		"NewUser":    user,
+		"Committees": committees,
 	}
 	switch {
 	case password != "" && password != passwordConfirm:
@@ -189,6 +208,56 @@ func (c *Controller) userEditStore(w http.ResponseWriter, r *http.Request) {
 	}
 	if changed && !check(w, r, user.Store(ctx, c.db)) {
 		return
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "user_edit.tmpl", data))
+}
+
+var roleCommitteeRe = regexp.MustCompile(`(member|manager)(\d+)`)
+
+func (c *Controller) userCommitteesStore(w http.ResponseWriter, r *http.Request) {
+	roleCommittees := r.Form["role_committee"]
+	memberships := map[int64]*models.Membership{}
+	for _, rc := range roleCommittees {
+		m := roleCommitteeRe.FindStringSubmatch(rc)
+		if m == nil {
+			continue
+		}
+		var (
+			role, err2 = models.ParseRole(m[1])
+			id, err1   = strconv.ParseInt(m[2], 10, 64)
+		)
+		if err1 != nil || err2 != nil {
+			// Should not happen.
+			continue
+		}
+		ms := memberships[id]
+		if ms == nil {
+			ms = &models.Membership{
+				Committee: &models.Committee{ID: id},
+			}
+			memberships[id] = ms
+		}
+		ms.Roles = append(ms.Roles, role)
+	}
+	nickname := r.FormValue("nickname")
+	ctx := r.Context()
+	if !check(w, r, models.UpdateMemberships(
+		ctx, c.db, nickname, maps.Values(memberships))) {
+		return
+	}
+	user, err := models.LoadUser(ctx, c.db, nickname)
+	if !check(w, r, err) {
+		return
+	}
+	committees, err := models.LoadCommittees(ctx, c.db)
+	if !check(w, r, err) {
+		return
+	}
+	data := templateData{
+		"Session":    auth.SessionFromContext(ctx),
+		"User":       auth.UserFromContext(ctx),
+		"NewUser":    user,
+		"Committees": committees,
 	}
 	check(w, r, c.tmpls.ExecuteTemplate(w, "user_edit.tmpl", data))
 }

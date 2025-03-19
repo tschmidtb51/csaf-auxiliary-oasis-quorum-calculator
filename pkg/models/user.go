@@ -13,6 +13,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"iter"
 	"slices"
 	"strings"
 
@@ -266,4 +267,37 @@ func (u *User) StoreNew(ctx context.Context, db *database.Database, password str
 		return false, fmt.Errorf("storing new user failed: %w", err)
 	}
 	return true, nil
+}
+
+// UpdateMemberships updates the memberships of the user with a given nickname.
+func UpdateMemberships(
+	ctx context.Context,
+	db *database.Database,
+	nickname string,
+	memberships iter.Seq[*Membership],
+) error {
+	tx, err := db.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	const deleteSQL = `DELETE FROM committee_roles WHERE nickname = ?`
+	if _, err := tx.ExecContext(ctx, deleteSQL, nickname); err != nil {
+		return fmt.Errorf("deleting committee roles failed: %w", err)
+	}
+	const insertSQL = `INSERT INTO committee_roles (nickname, committees_id, committee_role_id) ` +
+		`VALUES (?, ?, ?)`
+	stmt, err := tx.PrepareContext(ctx, insertSQL)
+	if err != nil {
+		return fmt.Errorf("preparing insert into committee roles failed: %w", err)
+	}
+	defer stmt.Close()
+	for ms := range memberships {
+		for _, r := range ms.Roles {
+			if _, err := stmt.ExecContext(ctx, nickname, ms.Committee.ID, r); err != nil {
+				return fmt.Errorf("inserting into committee roles failed: %w", err)
+			}
+		}
+	}
+	return tx.Commit()
 }

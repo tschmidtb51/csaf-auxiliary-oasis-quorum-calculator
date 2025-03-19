@@ -9,6 +9,7 @@
 package web
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -74,4 +75,18 @@ func changer(changed *bool) func(**string, string) {
 		}
 		*changed = true
 	}
+}
+
+// args is used in templates to construct maps of key/value pairs.
+func args(args ...any) (any, error) {
+	n := len(args)
+	if n%2 == 1 {
+		return nil, errors.New("number of args have to be even")
+	}
+	m := make(map[any]any, n/2)
+	for i := 0; i < n; i += 2 {
+		key, value := args[i], args[i+1]
+		m[key] = value
+	}
+	return m, nil
 }

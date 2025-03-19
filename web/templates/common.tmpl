@@ -80,3 +80,34 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 </table>
 {{ end }}
 {{- end -}}
+
+{{ define "user_committees" -}}
+{{ $committees := .Committees }}
+{{ $user := .User }}
+{{ if $committees }}
+{{ $member  := Role "member" }}
+{{ $manager := Role "manager" }}
+<table>
+  <thead>
+    <th>Committee</th>
+    <th>Member</th>
+    <th>Manager</th>
+  </thead>
+  <tbody>
+  {{ range $committees }}
+  <tr>
+    <td>{{ .Name }}</td>
+    {{ $ms := $user.FindMembership .Name }}
+    {{ if $ms }}
+      <td><input type="checkbox" name="role_committee" value="member{{ .ID }}"{{  if $ms.HasRole $member  }} checked{{ end }}></td>
+      <td><input type="checkbox" name="role_committee" value="manager{{ .ID }}"{{ if $ms.HasRole $manager }} checked{{ end }}></td>
+    {{ else }}
+      <td><input name="role_committee" type="checkbox" value="member{{ .ID }}"></td>
+      <td><input name="role_committee" type="checkbox" value="manager{{ .ID }}"></td>
+    {{ end }}
+  <tr>
+  {{ end }}
+  </tbody>
+</table>
+{{ end }}
+{{- end -}}
