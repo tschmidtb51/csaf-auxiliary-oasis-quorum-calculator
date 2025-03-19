@@ -9,6 +9,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 */ -}}
 {{ template "header" . }}
 {{ $sessionID := .Session.ID }}
+{{ $me := .Session.Nickname }}
 <a href="/user_create?SESSIONID={{ $sessionID }}">Create new user</a>
 <p>Users:</p>
 {{ if .Users }}
@@ -27,7 +28,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     {{ range $index, $user := .Users }}{{ with $user }}
     <tr>
       <td>
-        {{- if ne .Nickname "admin" -}}
+        {{- if and (ne .Nickname "admin") (ne .Nickname $me) -}}
         <input type="checkbox" name="users" id="check{{ $index }}" value="{{ .Nickname }}">
         {{- end -}}
       </td>

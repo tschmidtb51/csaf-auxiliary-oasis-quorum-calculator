@@ -84,10 +84,13 @@ renderTemplate:
 }
 
 func (c *Controller) usersStore(w http.ResponseWriter, r *http.Request) {
+	me := auth.SessionFromContext(r.Context()).Nickname()
 	if r.FormValue("delete") != "" {
 		if users := slices.DeleteFunc(
 			r.Form["users"],
-			func(u string) bool { return u == "admin" }); len(users) > 0 &&
+			func(u string) bool {
+				return u == "admin" || u == me
+			}); len(users) > 0 &&
 			!check(w, r, models.DeleteUsersByNickname(r.Context(), c.db, users...)) {
 			return
 		}
