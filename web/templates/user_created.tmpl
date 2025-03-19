@@ -1,0 +1,43 @@
+{{- /*
+This file is Free Software under the Apache-2.0 License
+without warranty, see README.md and LICENSE for details.
+
+SPDX-License-Identifier: Apache-2.0
+
+SPDX-FileCopyrightText: 2025 German Federal Office for Information Security (BSI) <https://www.bsi.bund.de>
+Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
+*/ -}}
+{{ template "header" . }}
+{{ $password  := .Password }}
+{{ $sessionID := .Session.ID }}
+<article>
+  <p>User successfully created.</p>
+  <table>
+    {{ with .NewUser }}
+    <tbody>
+      <tr>
+        <td>User name</td>
+        <td><a href="/user_edit?SESSIONID={{ $sessionID }}&nickname={{ .Nickname }}">{{ .Nickname }}</a></td>
+      </tr>
+      {{ if .Firstname }}
+      <tr>
+        <td>First name</td>
+        <td>{{ .Firstname }}</td>
+      </tr>
+      {{ end }}
+      {{ if .Lastname }}
+      <tr>
+        <td>Last name</td>
+        <td>{{ .Lastname }}</td>
+      </tr>
+      {{ end }}
+      <tr>
+        <td>Password</td>
+        <td><strong><tt>{{ $password }}</tt></strong></td>
+      </tr>
+    </tbody>
+    {{ end }}
+  </table>
+  <a href="/create_user?SESSIONID={{ $sessionID }}">Create another user</a>
+</article>
+{{ template "footer" }}

@@ -9,12 +9,14 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"slices"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/misc"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/models"
 )
 
@@ -91,4 +93,56 @@ func (c *Controller) usersStore(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	c.users(w, r)
+}
+
+func (c *Controller) userCreate(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	data := map[string]any{
+		"Session": auth.SessionFromContext(ctx),
+		"User":    auth.UserFromContext(ctx),
+		"NewUser": &models.User{},
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "user_create.tmpl", data))
+}
+
+func (c *Controller) userCreateStore(w http.ResponseWriter, r *http.Request) {
+	nuser := models.User{
+		Nickname:  strings.TrimSpace(r.FormValue("nickname")),
+		Firstname: nilString(strings.TrimSpace(r.FormValue("firstname"))),
+		Lastname:  nilString(strings.TrimSpace(r.FormValue("lastname"))),
+		IsAdmin:   r.FormValue("admin") == "admin",
+	}
+	var (
+		ctx      = r.Context()
+		errMsg   string
+		password string
+	)
+	data := map[string]any{
+		"Session": auth.SessionFromContext(ctx),
+		"User":    auth.UserFromContext(ctx),
+		"NewUser": &nuser,
+	}
+
+	if nuser.Nickname == "" {
+		errMsg = "Login name is missing."
+		goto renderTemplate
+	}
+
+	password = misc.RandomString(12)
+	switch success, err := nuser.StoreNew(ctx, c.db, password); {
+	case !check(w, r, err):
+		return
+	case !success:
+		errMsg = fmt.Sprintf("User %q already exists.", nuser.Nickname)
+		goto renderTemplate
+	}
+	data["Password"] = password
+	check(w, r, c.tmpls.ExecuteTemplate(w, "user_created.tmpl", data))
+	return
+
+renderTemplate:
+	if errMsg != "" {
+		data["Error"] = errMsg
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "user_create.tmpl", data))
 }

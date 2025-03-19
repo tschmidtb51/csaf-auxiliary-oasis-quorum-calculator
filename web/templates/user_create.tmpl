@@ -1,0 +1,27 @@
+{{- /*
+This file is Free Software under the Apache-2.0 License
+without warranty, see README.md and LICENSE for details.
+
+SPDX-License-Identifier: Apache-2.0
+
+SPDX-FileCopyrightText: 2025 German Federal Office for Information Security (BSI) <https://www.bsi.bund.de>
+Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
+*/ -}}
+{{ template "header" . }}
+{{ template "error" . }}
+<article>
+<form action="/user_create_store?SESSIONID={{ .Session.ID }}" method="post" accept-charset="UTF-8">
+  <label for="nickname">Login name:</label> <input type="input" name="nickname" id="nickname"
+    {{ if .NewUser.Nickname }}value="{{ .NewUser.Nickname }}"{{ end }}><br>
+  <label for="admin">Admin:</label> <input type="checkbox" name="admin" value="admin"
+    {{ if .NewUser.IsAdmin }}checked{{ end }}><br>
+  <label for="firstname">First name:</label> <input type="input" name="firstname" id="firstname"
+    {{ if .NewUser.Firstname }}value="{{ .NewUser.Firstname }}"{{ end }}><br>
+  <label for="lastname">Last name:</label> <input type="input" name="lastname" id="lastname"
+    {{ if .NewUser.Lastname }}value="{{ .NewUser.Lastname }}"{{ end }}><br>
+  <p>The password will be generated randomly.</p>
+  <input type="submit" value="Create">
+  <input type="reset" value="Reset">
+</form>
+</article>
+{{ template "footer" }}

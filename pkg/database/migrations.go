@@ -12,16 +12,10 @@ import (
 	"bytes"
 	"cmp"
 	"context"
-	crand "crypto/rand"
-	"crypto/sha256"
 	"embed"
-	"encoding/base64"
-	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
-	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -31,6 +25,7 @@ import (
 	"text/template"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/misc"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -63,39 +58,6 @@ func sqlQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", "''") + "'"
 }
 
-const alphabet = "abcdefghijklmnopqrstuvwxyz" +
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-	"0123456789"
-
-type cryptoSource struct{}
-
-func (cryptoSource) Uint64() uint64 {
-	var cs [8]byte
-	crand.Read(cs[:])
-	return binary.NativeEndian.Uint64(cs[:])
-}
-
-func randomString(n int) string {
-	rnd := rand.New(cryptoSource{})
-	out := make([]byte, n)
-	for i := range out {
-		out[i] = alphabet[rnd.IntN(len(alphabet))]
-	}
-	return string(out)
-}
-
-// EncodePassword encodes a password to be stored in the database.
-func EncodePassword(password string) string {
-	raw := make([]byte, 4+sha256.Size)
-	salt := raw[:4]
-	crand.Read(salt)
-	hash := sha256.New()
-	hash.Write(salt)
-	io.WriteString(hash, password)
-	copy(raw[4:], hash.Sum(nil))
-	return base64.URLEncoding.EncodeToString(raw)
-}
-
 func createFuncMap() template.FuncMap {
 	passwords := map[string]string{}
 	return template.FuncMap{
@@ -104,8 +66,8 @@ func createFuncMap() template.FuncMap {
 			if s := passwords[user]; s != "" {
 				return s
 			}
-			password := randomString(12)
-			encoded := EncodePassword(password)
+			password := misc.RandomString(12)
+			encoded := misc.EncodePassword(password)
 			passwords[user] = encoded
 			slog.Info("Generated new password. Note it down to log in",
 				"user", user,

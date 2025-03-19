@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/database"
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/misc"
 )
 
 // Role is the role in the committee.
@@ -180,7 +181,7 @@ func (u *User) Store(ctx context.Context, db *database.Database) error {
 	add("firstname", u.Firstname)
 	add("lastname", u.Lastname)
 	if u.Password != nil {
-		encoded := database.EncodePassword(*u.Password)
+		encoded := misc.EncodePassword(*u.Password)
 		add("password", encoded)
 	}
 	args = append(args, u.Nickname)
@@ -239,4 +240,31 @@ func DeleteUsersByNickname(
 		}
 	}
 	return tx.Commit()
+}
+
+// StoreNew stores the user with a given password into the database.
+// Returns false if the user already exists.
+func (u *User) StoreNew(ctx context.Context, db *database.Database, password string) (bool, error) {
+	tx, err := db.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback()
+	var exists bool
+	const userExistsSQL = `SELECT EXISTS(SELECT 1 FROM users WHERE nickname = ?)`
+	if err := tx.QueryRowContext(ctx, userExistsSQL, u.Nickname).Scan(&exists); err != nil {
+		return false, fmt.Errorf("checking user existance failed: %w", err)
+	}
+	encoded := misc.EncodePassword(password)
+	const insertSQL = `INSERT INTO users (nickname, firstname, lastname, is_admin, password) ` +
+		`VALUES (?, ?, ?, ?, ?)`
+	if _, err := tx.ExecContext(
+		ctx, insertSQL,
+		u.Nickname, u.Firstname, u.Lastname, u.IsAdmin, encoded); err != nil {
+		return false, fmt.Errorf("inserting user failed: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("storing new user failed: %w", err)
+	}
+	return true, nil
 }
