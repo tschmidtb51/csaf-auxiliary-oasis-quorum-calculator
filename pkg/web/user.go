@@ -131,3 +131,64 @@ func (c *Controller) userCreateStore(w http.ResponseWriter, r *http.Request) {
 	}
 	check(w, r, c.tmpls.ExecuteTemplate(w, "user_create.tmpl", data))
 }
+
+func (c *Controller) userEdit(w http.ResponseWriter, r *http.Request) {
+	nickname := r.FormValue("nickname")
+	ctx := r.Context()
+	user, err := models.LoadUser(ctx, c.db, nickname)
+	if !check(w, r, err) {
+		return
+	}
+	if user == nil {
+		c.users(w, r)
+		return
+	}
+	data := templateData{
+		"Session": auth.SessionFromContext(ctx),
+		"User":    auth.UserFromContext(ctx),
+		"NewUser": user,
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "user_edit.tmpl", data))
+}
+
+func (c *Controller) userEditStore(w http.ResponseWriter, r *http.Request) {
+	nickname := r.FormValue("nickname")
+	ctx := r.Context()
+	user, err := models.LoadUser(ctx, c.db, nickname)
+	if !check(w, r, err) {
+		return
+	}
+	if user == nil {
+		c.users(w, r)
+		return
+	}
+	var (
+		firstname       = strings.TrimSpace(r.FormValue("firstname"))
+		lastname        = strings.TrimSpace(r.FormValue("lastname"))
+		password        = strings.TrimSpace(r.FormValue("password"))
+		passwordConfirm = strings.TrimSpace(r.FormValue("password2"))
+	)
+	changed := false
+	change := changer(&changed)
+
+	change(&user.Firstname, firstname)
+	change(&user.Lastname, lastname)
+
+	data := templateData{
+		"Session": auth.SessionFromContext(ctx),
+		"User":    auth.UserFromContext(ctx),
+		"NewUser": user,
+	}
+	switch {
+	case password != "" && password != passwordConfirm:
+		data.error("Password and confirmation do not match.")
+	case password != "" && utf8.RuneCountInString(password) < 8:
+		data.error("Password too short (need at least 8 characters)")
+	case password != "":
+		change(&user.Password, password)
+	}
+	if changed && !check(w, r, user.Store(ctx, c.db)) {
+		return
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "user_edit.tmpl", data))
+}

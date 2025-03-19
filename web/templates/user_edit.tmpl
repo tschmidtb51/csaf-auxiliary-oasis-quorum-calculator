@@ -1,0 +1,33 @@
+{{- /*
+This file is Free Software under the Apache-2.0 License
+without warranty, see README.md and LICENSE for details.
+
+SPDX-License-Identifier: Apache-2.0
+
+SPDX-FileCopyrightText: 2025 German Federal Office for Information Security (BSI) <https://www.bsi.bund.de>
+Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
+*/ -}}
+{{ template "header" . }}
+{{ template "error" . }}
+<article>
+  <form action="/user_edit_store" method="post" accept-charset="UTF-8">
+    Login name: <strong>{{ .NewUser.Nickname }}</strong>
+    <br><br>
+    <label for="firstname">First name:</label>
+    <input type="text" id="firstname" name="firstname"
+      {{ if .NewUser.Firstname }}value="{{ .NewUser.Firstname }}"{{ end }}><br>
+    <label for="lastname">Last name:</label>
+    <input type="text" id="lastname" name="lastname"
+      {{ if .NewUser.Lastname }}value="{{ .NewUser.Lastname }}"{{ end }}><br>
+    <label for="password">Password:</label>
+    <input type="password" placeholder="********" id="password" name="password">
+    <label for="password2">Confirm password:</label>
+    <input type="password" placeholder="********" id="password2" name="password2">
+    <br><br>
+    <input type="hidden" name="nickname" value="{{ .NewUser.Nickname }}">
+    <input type="hidden" name="SESSIONID" value="{{ .Session.ID }}">
+    <input type="submit" value="Save">
+    <input type="reset" value="Reset">
+  </form>
+</article>
+{{ template "footer" }}

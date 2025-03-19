@@ -95,6 +95,8 @@ func (c *Controller) Bind() http.Handler {
 	router.HandleFunc("/user", mw.User(c.user))
 	router.HandleFunc("/user_store", mw.User(c.userStore))
 	router.HandleFunc("/user_create", mw.Admin(c.userCreate))
+	router.HandleFunc("/user_edit", mw.Admin(c.userEdit))
+	router.HandleFunc("/user_edit_store", mw.Admin(c.userEditStore))
 	router.HandleFunc("/user_create_store", mw.Admin(c.userCreateStore))
 	router.HandleFunc("/users", mw.Admin(c.users))
 	router.HandleFunc("/users_store", mw.Admin(c.usersStore))
