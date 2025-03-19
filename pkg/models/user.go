@@ -130,7 +130,7 @@ func LoadUser(ctx context.Context, db *database.Database, nickname string) (*Use
 	// Collect memberships
 	const committeeRolesSQL = `SELECT committee_role_id, committees_id, name, description ` +
 		`FROM committee_roles JOIN committees ` +
-		`ON committee_roles.committee_role_id = committees.id ` +
+		`ON committee_roles.committees_id = committees.id ` +
 		`WHERE nickname = ? ` +
 		`ORDER BY committees_id, committee_role_id`
 
@@ -147,7 +147,7 @@ func LoadUser(ctx context.Context, db *database.Database, nickname string) (*Use
 				name        string
 				description *string
 			)
-			if err := rows.Scan(&cid, &rid, &name, &description); err != nil {
+			if err := rows.Scan(&rid, &cid, &name, &description); err != nil {
 				return err
 			}
 			if n := len(user.Memberships); n == 0 || user.Memberships[n-1].Committee.ID != cid {
@@ -166,7 +166,6 @@ func LoadUser(ctx context.Context, db *database.Database, nickname string) (*Use
 	}(); err != nil {
 		return nil, err
 	}
-
 	return &user, nil
 }
 

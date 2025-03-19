@@ -51,8 +51,32 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 </body>
 </html>
 {{- end -}}
+
 {{ define "error" -}}
 {{ if .Error -}}
 <p class="notice"><strong>Error:</strong> {{ .Error }}</p>
+{{ end }}
+{{- end -}}
+
+{{ define "committees" -}}
+{{ if .Memberships }}
+{{ $member  := Role "member" }}
+{{ $manager := Role "manager" }}
+<table>
+  <thead>
+    <th>Committee</th>
+    <th>Member</th>
+    <th>Manager</th>
+  </thead>
+  <tbody>
+  {{ range .Memberships }}
+  <tr>
+    <td>{{ .Committee.Name }}</td>
+    <td>{{ if .HasRole $member  }}&#x2611;{{ else }}&#x2610;{{ end }}</td>
+    <td>{{ if .HasRole $manager }}&#x2611;{{ else }}&#x2610;{{ end }}</td>
+  <tr>
+  {{ end }}
+  </tbody>
+</table>
 {{ end }}
 {{- end -}}

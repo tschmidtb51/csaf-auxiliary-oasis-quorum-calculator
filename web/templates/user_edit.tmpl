@@ -30,4 +30,11 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <input type="reset" value="Reset">
   </form>
 </article>
+{{- if not .NewUser.IsAdmin }}
+<article>
+  Committees:
+  {{ template "committees" .NewUser }}
+  <p><a href="/user_committees_edit=?SESSIONID={{ .Session.ID }}&nickname={{ .NewUser.Nickname }}">Edit</a></p>
+</article>
+{{ end -}}
 {{ template "footer" }}
