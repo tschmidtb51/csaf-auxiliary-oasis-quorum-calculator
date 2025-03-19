@@ -56,13 +56,11 @@ func nilString(s string) *string {
 	return nil
 }
 
-// changer returns a function and a pointer to bool.
-// The first argument to the returned function is a pointer
-// to a pointer under which a potential nil string is stored.
-// The returned pointer to a bool dereferences to an indicator
-// if the string pointer has changed.
-func changer() (func(**string, string), *bool) {
-	changed := false
+// changer returns a function which gets
+// a pointer to a potential nil string which might be changed.
+// The changed pointer is used to signal a change
+// to a common flag.
+func changer(changed *bool) func(**string, string) {
 	return func(s **string, v string) {
 		switch {
 		case v == "" && *s == nil:
@@ -74,6 +72,6 @@ func changer() (func(**string, string), *bool) {
 		default:
 			*s = &v
 		}
-		changed = true
-	}, &changed
+		*changed = true
+	}
 }

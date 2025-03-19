@@ -26,7 +26,7 @@ func (c *Controller) users(w http.ResponseWriter, r *http.Request) {
 	if !check(w, r, err) {
 		return
 	}
-	data := map[string]any{
+	data := templateData{
 		"Users":   users,
 		"Session": auth.SessionFromContext(ctx),
 		"User":    auth.UserFromContext(ctx),
@@ -36,7 +36,7 @@ func (c *Controller) users(w http.ResponseWriter, r *http.Request) {
 
 func (c *Controller) user(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	data := map[string]any{
+	data := templateData{
 		"Session": auth.SessionFromContext(ctx),
 		"User":    auth.UserFromContext(ctx),
 	}
@@ -50,35 +50,28 @@ func (c *Controller) userStore(w http.ResponseWriter, r *http.Request) {
 		password        = strings.TrimSpace(r.FormValue("password"))
 		passwordConfirm = strings.TrimSpace(r.FormValue("password2"))
 	)
-	change, changed := changer()
+	changed := false
+	change := changer(&changed)
 
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	change(&user.Firstname, firstname)
 	change(&user.Lastname, lastname)
 
-	var errMsg string
-	if password != "" || passwordConfirm != "" {
-		if password != passwordConfirm {
-			errMsg = "Password and confirmation do not match."
-			goto renderTemplate
-		}
-		if utf8.RuneCountInString(password) < 8 {
-			errMsg = "Password too short (need at least 8 characters)"
-			goto renderTemplate
-		}
-		change(&user.Password, password)
-	}
-	if *changed && !check(w, r, user.Store(ctx, c.db)) {
-		return
-	}
-renderTemplate:
-	data := map[string]any{
+	data := templateData{
 		"Session": auth.SessionFromContext(ctx),
 		"User":    user,
 	}
-	if errMsg != "" {
-		data["Error"] = errMsg
+	switch {
+	case password != "" && password != passwordConfirm:
+		data.error("Password and confirmation do not match.")
+	case password != "" && utf8.RuneCountInString(password) < 8:
+		data.error("Password too short (need at least 8 characters)")
+	case password != "":
+		change(&user.Password, password)
+	}
+	if changed && !check(w, r, user.Store(ctx, c.db)) {
+		return
 	}
 	check(w, r, c.tmpls.ExecuteTemplate(w, "user.tmpl", data))
 }
@@ -100,7 +93,7 @@ func (c *Controller) usersStore(w http.ResponseWriter, r *http.Request) {
 
 func (c *Controller) userCreate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	data := map[string]any{
+	data := templateData{
 		"Session": auth.SessionFromContext(ctx),
 		"User":    auth.UserFromContext(ctx),
 		"NewUser": &models.User{},
@@ -115,37 +108,26 @@ func (c *Controller) userCreateStore(w http.ResponseWriter, r *http.Request) {
 		Lastname:  nilString(strings.TrimSpace(r.FormValue("lastname"))),
 		IsAdmin:   r.FormValue("admin") == "admin",
 	}
-	var (
-		ctx      = r.Context()
-		errMsg   string
-		password string
-	)
-	data := map[string]any{
+	ctx := r.Context()
+	data := templateData{
 		"Session": auth.SessionFromContext(ctx),
 		"User":    auth.UserFromContext(ctx),
 		"NewUser": &nuser,
 	}
-
 	if nuser.Nickname == "" {
-		errMsg = "Login name is missing."
-		goto renderTemplate
-	}
-
-	password = misc.RandomString(12)
-	switch success, err := nuser.StoreNew(ctx, c.db, password); {
-	case !check(w, r, err):
-		return
-	case !success:
-		errMsg = fmt.Sprintf("User %q already exists.", nuser.Nickname)
-		goto renderTemplate
-	}
-	data["Password"] = password
-	check(w, r, c.tmpls.ExecuteTemplate(w, "user_created.tmpl", data))
-	return
-
-renderTemplate:
-	if errMsg != "" {
-		data["Error"] = errMsg
+		data.error("Login name is missing.")
+	} else {
+		password := misc.RandomString(12)
+		switch success, err := nuser.StoreNew(ctx, c.db, password); {
+		case !check(w, r, err):
+			return
+		case !success:
+			data.error(fmt.Sprintf("User %q already exists.", nuser.Nickname))
+		default:
+			data["Password"] = password
+			check(w, r, c.tmpls.ExecuteTemplate(w, "user_created.tmpl", data))
+			return
+		}
 	}
 	check(w, r, c.tmpls.ExecuteTemplate(w, "user_create.tmpl", data))
 }

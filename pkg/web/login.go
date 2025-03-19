@@ -58,7 +58,7 @@ func (c *Controller) login(w http.ResponseWriter, r *http.Request) {
 	if !check(w, r, err) {
 		return
 	}
-	data := map[string]any{
+	data := templateData{
 		"Session": session,
 		"User":    user,
 	}

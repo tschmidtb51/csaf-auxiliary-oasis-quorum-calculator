@@ -29,7 +29,7 @@ func (c *Controller) committees(w http.ResponseWriter, r *http.Request) {
 	if !check(w, r, err) {
 		return
 	}
-	data := map[string]any{
+	data := templateData{
 		"Session":    auth.SessionFromContext(ctx),
 		"User":       auth.UserFromContext(ctx),
 		"Committees": committees,
@@ -50,7 +50,7 @@ func (c *Controller) committeesStore(w http.ResponseWriter, r *http.Request) {
 
 func (c *Controller) committeeCreate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	data := map[string]any{
+	data := templateData{
 		"Session": auth.SessionFromContext(ctx),
 		"User":    auth.UserFromContext(ctx),
 	}
@@ -61,37 +61,27 @@ func (c *Controller) committeeStore(w http.ResponseWriter, r *http.Request) {
 	var (
 		name        = strings.TrimSpace(r.FormValue("name"))
 		description = nilString(strings.TrimSpace(r.FormValue("description")))
-		committee   *models.Committee
-		err         error
-		errMsg      string
 		ctx         = r.Context()
 	)
-	if name == "" {
-		errMsg = "Name is missing."
-		goto renderTemplate
-	}
-
-	committee, err = models.CreateCommittee(ctx, c.db, name, description)
-	if !check(w, r, err) {
-		return
-	}
-	if committee == nil {
-		errMsg = fmt.Sprintf("Committee %q already exists.", name)
-		goto renderTemplate
-	}
-	// Return to committee listing
-	c.committees(w, r)
-	return
-
-renderTemplate:
-	data := map[string]any{
+	data := templateData{
 		"Name":        name,
 		"Description": description,
 		"Session":     auth.SessionFromContext(ctx),
 		"User":        auth.UserFromContext(ctx),
 	}
-	if errMsg != "" {
-		data["Error"] = errMsg
+	if name == "" {
+		data.error("Name is missing.")
+	} else {
+		committee, err := models.CreateCommittee(ctx, c.db, name, description)
+		if !check(w, r, err) {
+			return
+		}
+		if committee != nil {
+			// Return to committee listing
+			c.committees(w, r)
+			return
+		}
+		data.error(fmt.Sprintf("Committee %q already exists.", name))
 	}
 	check(w, r, c.tmpls.ExecuteTemplate(w, "committee_create.tmpl", data))
 }

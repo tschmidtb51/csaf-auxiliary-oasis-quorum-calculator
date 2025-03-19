@@ -29,6 +29,14 @@ type Controller struct {
 	tmpls *template.Template
 }
 
+type templateData map[string]any
+
+func (td templateData) error(msg string) {
+	if msg != "" {
+		td["Error"] = msg
+	}
+}
+
 // templateFuncs are the functions usable in the templates.
 var templateFuncs = template.FuncMap{
 	"Role":    models.ParseRole,
@@ -67,7 +75,7 @@ func check(w http.ResponseWriter, r *http.Request, err error) bool {
 func (c *Controller) home(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement me!
 	ctx := r.Context()
-	data := map[string]any{
+	data := templateData{
 		"Session": auth.SessionFromContext(ctx),
 		"User":    auth.UserFromContext(ctx),
 	}
