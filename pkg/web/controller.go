@@ -32,9 +32,7 @@ type Controller struct {
 type templateData map[string]any
 
 func (td templateData) error(msg string) {
-	if msg != "" {
-		td["Error"] = msg
-	}
+	td["Error"] = msg
 }
 
 // templateFuncs are the functions usable in the templates.
@@ -62,6 +60,14 @@ func NewController(
 		db:    db,
 		tmpls: tmpls,
 	}, nil
+}
+
+func checkParam(w http.ResponseWriter, r *http.Request, err error) bool {
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return false
+	}
+	return true
 }
 
 func check(w http.ResponseWriter, r *http.Request, err error) bool {
@@ -103,7 +109,8 @@ func (c *Controller) Bind() http.Handler {
 	router.HandleFunc("/users", mw.Admin(c.users))
 	router.HandleFunc("/users_store", mw.Admin(c.usersStore))
 
-	router.HandleFunc("/committee", mw.Admin(c.committee))
+	router.HandleFunc("/committee_edit", mw.Admin(c.committeeEdit))
+	router.HandleFunc("/committee_edit_store", mw.Admin(c.committeeEditStore))
 	router.HandleFunc("/committees", mw.Admin(c.committees))
 	router.HandleFunc("/committees_store", mw.Admin(c.committeesStore))
 	router.HandleFunc("/committee_create", mw.Admin(c.committeeCreate))

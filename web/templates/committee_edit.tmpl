@@ -1,0 +1,25 @@
+{{- /*
+This file is Free Software under the Apache-2.0 License
+without warranty, see README.md and LICENSE for details.
+
+SPDX-License-Identifier: Apache-2.0
+
+SPDX-FileCopyrightText: 2025 German Federal Office for Information Security (BSI) <https://www.bsi.bund.de>
+Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
+*/ -}}
+{{ template "header" . }}
+{{ template "error" . }}
+<article>
+<form action="/committee_edit_store" method="post" accept-charset="UTF-8">
+  <label for="name">Committee name:</label>
+  <input type="input" id="name" name="name" value="{{ .Committee.Name }}"><br>
+  <label for="description">Description:</label>
+  <textarea id="description"
+    name="description">{{ if .Committee.Description }}{{ .Committee.Description }}{{ end }}</textarea><br>
+  <input type="hidden" name="id" value="{{ .Committee.ID }}">
+  <input type="hidden" name="SESSIONID" value="{{ .Session.ID }}">
+  <input type="submit" value="Save">
+  <input type="reset" value="Reset">
+</form>
+</article>
+{{ template "footer" }}

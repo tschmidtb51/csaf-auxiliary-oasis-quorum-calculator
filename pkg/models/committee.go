@@ -10,6 +10,8 @@ package models
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/database"
@@ -94,4 +96,29 @@ func CreateCommittee(
 		Name:        name,
 		Description: description,
 	}, nil
+}
+
+// LoadCommittee loads a committee by its id.
+func LoadCommittee(ctx context.Context, db *database.Database, id int64) (*Committee, error) {
+	const loadSQL = `SELECT name, description FROM committees WHERE id = ?`
+	committee := Committee{ID: id}
+	switch err := db.DB.QueryRowContext(ctx, loadSQL, id).Scan(
+		&committee.Name,
+		&committee.Description,
+	); {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil, nil
+	case err != nil:
+		return nil, fmt.Errorf("loading committee failed: %w", err)
+	}
+	return &committee, nil
+}
+
+// Store stores a committee into the database.
+func (c *Committee) Store(ctx context.Context, db *database.Database) error {
+	const updateSQL = `UPDATE committees SET name = ?, description = ? WHERE id = ?`
+	if _, err := db.DB.ExecContext(ctx, updateSQL, c.Name, c.Description, c.ID); err != nil {
+		return fmt.Errorf("storing committee failed: %w", err)
+	}
+	return nil
 }

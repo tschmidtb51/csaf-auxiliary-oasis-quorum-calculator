@@ -57,24 +57,19 @@ func nilString(s string) *string {
 	return nil
 }
 
-// changer returns a function which gets
-// a pointer to a potential nil string which might be changed.
-// The changed pointer is used to signal a change
-// to a common flag.
-func changer(changed *bool) func(**string, string) {
-	return func(s **string, v string) {
-		switch {
-		case v == "" && *s == nil:
-			return
-		case v != "" && *s != nil && v == **s:
-			return
-		case v == "" && *s != nil:
-			*s = nil
-		default:
-			*s = &v
-		}
-		*changed = true
+// nilChanger updates a potential nil string.
+func nilChanger(changed *bool, s **string, v string) {
+	switch {
+	case v == "" && *s == nil:
+		return
+	case v != "" && *s != nil && v == **s:
+		return
+	case v == "" && *s != nil:
+		*s = nil
+	default:
+		*s = &v
 	}
+	*changed = true
 }
 
 // args is used in templates to construct maps of key/value pairs.

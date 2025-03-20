@@ -52,14 +52,12 @@ func (c *Controller) userStore(w http.ResponseWriter, r *http.Request) {
 		lastname        = strings.TrimSpace(r.FormValue("lastname"))
 		password        = strings.TrimSpace(r.FormValue("password"))
 		passwordConfirm = strings.TrimSpace(r.FormValue("password2"))
+		changed         = false
+		ctx             = r.Context()
+		user            = auth.UserFromContext(ctx)
 	)
-	changed := false
-	change := changer(&changed)
-
-	ctx := r.Context()
-	user := auth.UserFromContext(ctx)
-	change(&user.Firstname, firstname)
-	change(&user.Lastname, lastname)
+	nilChanger(&changed, &user.Firstname, firstname)
+	nilChanger(&changed, &user.Lastname, lastname)
 
 	data := templateData{
 		"Session": auth.SessionFromContext(ctx),
@@ -71,7 +69,7 @@ func (c *Controller) userStore(w http.ResponseWriter, r *http.Request) {
 	case password != "" && utf8.RuneCountInString(password) < 8:
 		data.error("Password too short (need at least 8 characters)")
 	case password != "":
-		change(&user.Password, password)
+		nilChanger(&changed, &user.Password, password)
 	}
 	if changed && !check(w, r, user.Store(ctx, c.db)) {
 		return
@@ -180,12 +178,11 @@ func (c *Controller) userEditStore(w http.ResponseWriter, r *http.Request) {
 		lastname        = strings.TrimSpace(r.FormValue("lastname"))
 		password        = strings.TrimSpace(r.FormValue("password"))
 		passwordConfirm = strings.TrimSpace(r.FormValue("password2"))
+		changed         = false
 	)
-	changed := false
-	change := changer(&changed)
 
-	change(&user.Firstname, firstname)
-	change(&user.Lastname, lastname)
+	nilChanger(&changed, &user.Firstname, firstname)
+	nilChanger(&changed, &user.Lastname, lastname)
 
 	committees, err := models.LoadCommittees(ctx, c.db)
 	if !check(w, r, err) {
@@ -204,7 +201,7 @@ func (c *Controller) userEditStore(w http.ResponseWriter, r *http.Request) {
 	case password != "" && utf8.RuneCountInString(password) < 8:
 		data.error("Password too short (need at least 8 characters)")
 	case password != "":
-		change(&user.Password, password)
+		nilChanger(&changed, &user.Password, password)
 	}
 	if changed && !check(w, r, user.Store(ctx, c.db)) {
 		return

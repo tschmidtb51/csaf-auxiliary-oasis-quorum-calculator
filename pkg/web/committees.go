@@ -11,16 +11,72 @@ package web
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/models"
 )
 
-func (c *Controller) committee(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement me!
-	_ = w
-	_ = r
+func (c *Controller) committeeEdit(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
+	if !checkParam(w, r, err) {
+		return
+	}
+	ctx := r.Context()
+	committee, err := models.LoadCommittee(ctx, c.db, id)
+	if !check(w, r, err) {
+		return
+	}
+	if committee == nil {
+		c.committees(w, r)
+		return
+	}
+	data := templateData{
+		"Session":   auth.SessionFromContext(ctx),
+		"User":      auth.UserFromContext(ctx),
+		"Committee": committee,
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "committee_edit.tmpl", data))
+}
+
+func (c *Controller) committeeEditStore(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
+	if !checkParam(w, r, err) {
+		return
+	}
+	ctx := r.Context()
+	committee, err := models.LoadCommittee(ctx, c.db, id)
+	if !check(w, r, err) {
+		return
+	}
+	if committee == nil {
+		c.committees(w, r)
+		return
+	}
+	data := templateData{
+		"Session":   auth.SessionFromContext(ctx),
+		"User":      auth.UserFromContext(ctx),
+		"Committee": committee,
+	}
+	var (
+		name        = strings.TrimSpace(r.FormValue("name"))
+		description = strings.TrimSpace(r.FormValue("description"))
+		changed     bool
+	)
+	if name == "" {
+		data.error("Missing committee name.")
+	} else {
+		if name != committee.Name {
+			committee.Name = name
+			changed = true
+		}
+		nilChanger(&changed, &committee.Description, description)
+	}
+	if changed && !check(w, r, committee.Store(ctx, c.db)) {
+		return
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "committee_edit.tmpl", data))
 }
 
 func (c *Controller) committees(w http.ResponseWriter, r *http.Request) {

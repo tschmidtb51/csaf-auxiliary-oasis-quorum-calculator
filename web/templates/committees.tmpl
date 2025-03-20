@@ -25,7 +25,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   {{ range .Committees }}
     <tr>
       <td><input type="checkbox" name="committees" id="check{{ .ID }}" value="{{ .ID }}"></td>
-      <td><a href="/committee?SESSIONID={{ $sessionID }}&id={{ .ID }}">{{ .Name }}</a></td>
+      <td><a href="/committee_edit?SESSIONID={{ $sessionID }}&id={{ .ID }}">{{ .Name }}</a></td>
       <td>{{ .Description | Shorten }}</td>
     </tr>
   {{ end }}
