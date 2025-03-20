@@ -124,7 +124,7 @@ func (mw *Middleware) LoggedIn(next http.HandlerFunc) http.HandlerFunc {
 			&lastAccess,
 		); {
 		case errors.Is(err, sql.ErrNoRows):
-			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			http.Redirect(w, r, mw.redirect, http.StatusSeeOther)
 			return
 		case err != nil:
 			slog.ErrorContext(r.Context(), "cannot load session", "error", err)
@@ -132,7 +132,7 @@ func (mw *Middleware) LoggedIn(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		if expired := time.Now().Add(-mw.cfg.Sessions.MaxAge); lastAccess.Before(expired) {
-			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			http.Redirect(w, r, mw.redirect, http.StatusSeeOther)
 			return
 		}
 		session := &Session{
