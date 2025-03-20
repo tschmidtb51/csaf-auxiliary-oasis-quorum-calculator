@@ -244,7 +244,7 @@ func LoadAllUsers(ctx context.Context, db *database.Database) ([]*User, error) {
 func DeleteUsersByNickname(
 	ctx context.Context,
 	db *database.Database,
-	nicknames ...string,
+	nicknames iter.Seq[string],
 ) error {
 	tx, err := db.DB.BeginTx(ctx, nil)
 	if err != nil {
@@ -252,7 +252,7 @@ func DeleteUsersByNickname(
 	}
 	defer tx.Rollback()
 	const deleteSQL = `DELETE FROM users WHERE nickname = ?`
-	for _, nickname := range nicknames {
+	for nickname := range nicknames {
 		if _, err := tx.ExecContext(ctx, deleteSQL, nickname); err != nil {
 			return fmt.Errorf("deleting users failed: %w", err)
 		}

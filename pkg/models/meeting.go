@@ -111,3 +111,28 @@ func LoadMeetings(
 	})
 	return meetings, nil
 }
+
+func DeleteMeetingsByID(
+	ctx context.Context,
+	db *database.Database,
+	committeeID int64,
+	meetingsIDs iter.Seq[int64],
+) error {
+	tx, err := db.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	const deleteSQL = `DELETE FROM meetings WHERE id = ? AND committees_id = ?`
+	stmt, err := tx.PrepareContext(ctx, deleteSQL)
+	if err != nil {
+		return fmt.Errorf("preparing delete meetings failed: %w", err)
+	}
+	defer stmt.Close()
+	for meetingID := range meetingsIDs {
+		if _, err := stmt.ExecContext(ctx, meetingID, committeeID); err != nil {
+			return fmt.Errorf("deleting meeting failed: %w", err)
+		}
+	}
+	return tx.Commit()
+}

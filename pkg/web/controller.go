@@ -120,6 +120,8 @@ func (c *Controller) Bind() http.Handler {
 
 	router.HandleFunc("/manager", mw.Roles(c.manager, models.ManagerRole))
 
+	router.HandleFunc("/meetings_store", mw.Roles(c.meetingsStore, models.ManagerRole))
+
 	static := http.FileServer(http.Dir(c.cfg.Web.Root))
 	router.Handle("/static/", static)
 

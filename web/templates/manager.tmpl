@@ -16,9 +16,10 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{range $user.Committees }}
 {{- $ms := $user.FindMembership .Name }}
 {{- if not ($ms.HasRole $manager) }}{{ continue }}{{ end }}
+{{- $committeeID := .ID }}
 <article>
   Committee: <strong><b>{{ .Name }}</b></strong><br><br>
-  <a href="/meeting_create?SESSIONID={{ $sessionID }}&committee={{ .ID }}">Create meeting</a>
+  <a href="/meeting_create?SESSIONID={{ $sessionID }}&committee={{ $committeeID }}">Create meeting</a>
   {{ $filter := CommitteeIDFilter .ID }}
   {{ if $meetings.Contains $filter }}
   <form action="/meetings_store" method="post" accept-charset="UTF-8">
@@ -35,14 +36,16 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   {{ range $meetings.Filter $filter }}
     <tr>
       <td><input type="checkbox" name="meetings" value="{{ .ID }}"></td>
-      <td><a href="/meeting_edit?SESSIONID={{ $sessionID }}&meeting={{ .ID }}">{{ .StartTime.UTC.Format "2006-01-02 15:04:05 MST" }}</a></td>
+      <td><a href="/meeting_edit?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}"
+             >{{ .StartTime.UTC.Format "2006-01-02 15:04:05 MST" }}</a></td>
       <td>{{ .Duration | HoursMinutes }} </td>
       <td>{{ if .Description }}{{ Shorten .Description }}{{ end }}</td>
     </tr>
   {{ end }}
   </tbody>
   </table>
-  <input type="hidden" value="{{ $sessionID }}">
+  <input type="hidden" name="SESSIONID" value="{{ $sessionID }}">
+  <input type="hidden" name="committee" value="{{ $committeeID }}">
   <input type="submit" name="delete" value="Delete">
   <input type="reset" value="Reset">
   </form>
