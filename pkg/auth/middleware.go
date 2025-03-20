@@ -14,6 +14,8 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"slices"
+	"strconv"
 	"time"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
@@ -63,6 +65,49 @@ func UserFromContext(ctx context.Context) *models.User {
 		return nil
 	}
 	return v.(*models.User)
+}
+
+// Roles checks if the user has any of the given roles in her of his committees.
+func (mw *Middleware) Roles(next http.HandlerFunc, roles ...models.Role) http.HandlerFunc {
+	return mw.User(func(w http.ResponseWriter, r *http.Request) {
+		user := UserFromContext(r.Context())
+		if user == nil {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+		if !slices.ContainsFunc(user.Memberships, func(m *models.Membership) bool {
+			return m.HasAnyRole(roles...)
+		}) {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+		next(w, r)
+	})
+}
+
+// CommitteeRoles checks if the user has any of the given roles in the committee
+// passed as a form value.
+func (mw *Middleware) CommitteeRoles(next http.HandlerFunc, roles ...models.Role) http.HandlerFunc {
+	return mw.User(func(w http.ResponseWriter, r *http.Request) {
+		committee := r.FormValue("committee")
+		cid, err := strconv.ParseInt(committee, 10, 64)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		user := UserFromContext(r.Context())
+		if user == nil {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+		if !slices.ContainsFunc(user.Memberships, func(m *models.Membership) bool {
+			return m.Committee.ID == cid && m.HasAnyRole(roles...)
+		}) {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+		next(w, r)
+	})
 }
 
 // User loads the data of a logged in user and stores it in the context.

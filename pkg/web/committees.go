@@ -20,7 +20,7 @@ import (
 
 func (c *Controller) committeeEdit(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
-	if !checkParam(w, r, err) {
+	if !checkParam(w, err) {
 		return
 	}
 	ctx := r.Context()
@@ -42,7 +42,7 @@ func (c *Controller) committeeEdit(w http.ResponseWriter, r *http.Request) {
 
 func (c *Controller) committeeEditStore(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
-	if !checkParam(w, r, err) {
+	if !checkParam(w, err) {
 		return
 	}
 	ctx := r.Context()

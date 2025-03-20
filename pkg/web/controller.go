@@ -62,7 +62,7 @@ func NewController(
 	}, nil
 }
 
-func checkParam(w http.ResponseWriter, r *http.Request, err error) bool {
+func checkParam(w http.ResponseWriter, err error) bool {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return false

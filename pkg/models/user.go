@@ -91,6 +91,13 @@ func (m *Membership) HasRole(role Role) bool {
 	return m != nil && slices.Contains(m.Roles, role)
 }
 
+// HasAnyRole checks if a membership contain any of the given roles.
+func (m *Membership) HasAnyRole(roles ...Role) bool {
+	return m != nil && slices.ContainsFunc(m.Roles, func(r Role) bool {
+		return slices.Contains(roles, r)
+	})
+}
+
 // CountMemberships count the memberships with a given role.
 func (u *User) CountMemberships(role Role) int {
 	count := 0
