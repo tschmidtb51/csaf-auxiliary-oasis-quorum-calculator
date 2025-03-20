@@ -11,10 +11,14 @@ package web
 import (
 	"errors"
 	"fmt"
+	"iter"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/models"
 )
 
 // datetimeHoursMinutes rounds the duration to minutes
@@ -112,4 +116,35 @@ func args(args ...any) (any, error) {
 		m[key] = value
 	}
 	return m, nil
+}
+
+var durationRe = regexp.MustCompile(`^\s*(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?\s*$`)
+
+// parseDuration parses hours an minutes to a duration.
+func parseDuration(d string) (time.Duration, error) {
+	match := durationRe.FindStringSubmatch(d)
+	if match == nil {
+		return 0, errors.New("not a valid duration")
+	}
+	var h, m int64
+	if match[1] != "" {
+		h, _ = strconv.ParseInt(match[1], 10, 64)
+	}
+	if match[2] != "" {
+		m, _ = strconv.ParseInt(match[2], 10, 64)
+	}
+	return time.Duration(h)*time.Hour + time.Duration(m)*time.Minute, nil
+}
+
+func idFromCommittee(c *models.Committee) int64 { return c.ID }
+
+// transform returns a map iterator on a sequence.
+func transform[S, T any](seq iter.Seq[S], xform func(S) T) iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for s := range seq {
+			if !yield(xform(s)) {
+				return
+			}
+		}
+	}
 }

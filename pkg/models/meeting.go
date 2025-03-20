@@ -40,6 +40,14 @@ func CommitteeIDFilter(id int64) func(m *Meeting) bool {
 	}
 }
 
+// OverlapFilter creates a filter which checks if a meeting overlaps
+// a given interval.
+func OverlapFilter(start, stop time.Time) func(m *Meeting) bool {
+	return func(m *Meeting) bool {
+		return !(m.StopTime.Before(start) || stop.Before(m.StartTime))
+	}
+}
+
 // Duration returns duration of the meeting.
 func (m *Meeting) Duration() time.Duration {
 	return m.StopTime.Sub(m.StartTime)
@@ -65,7 +73,7 @@ func (ms Meetings) Contains(cond func(m *Meeting) bool) bool {
 func LoadMeetings(
 	ctx context.Context,
 	db *database.Database,
-	committees iter.Seq[*Committee],
+	committees iter.Seq[int64],
 ) (Meetings, error) {
 	tx, err := db.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
@@ -82,14 +90,14 @@ func LoadMeetings(
 	defer stmt.Close()
 	var meetings Meetings
 	for committee := range committees {
-		rows, err := stmt.QueryContext(ctx, committee.ID)
+		rows, err := stmt.QueryContext(ctx, committee)
 		if err != nil {
 			return nil, fmt.Errorf("querying meetings failed: %w", err)
 		}
 		if err := func() error {
 			defer rows.Close()
 			for rows.Next() {
-				meeting := Meeting{CommitteeID: committee.ID}
+				meeting := Meeting{CommitteeID: committee}
 				if err := rows.Scan(
 					&meeting.ID,
 					&meeting.Running,
@@ -136,4 +144,21 @@ func DeleteMeetingsByID(
 		}
 	}
 	return tx.Commit()
+}
+
+// StoreNew stores a new meeting into the database.
+func (m *Meeting) StoreNew(ctx context.Context, db *database.Database) error {
+	const insertSQL = `INSERT INTO meetings ` +
+		`(committees_id, start_time, stop_time, description) ` +
+		`VALUES (?, ?, ?, ?) ` +
+		`RETURNING id`
+	if err := db.DB.QueryRowContext(ctx, insertSQL,
+		m.CommitteeID,
+		m.StartTime,
+		m.StopTime,
+		m.Description,
+	).Scan(&m.ID); err != nil {
+		return fmt.Errorf("inserting meeting into database failed: %w", err)
+	}
+	return nil
 }

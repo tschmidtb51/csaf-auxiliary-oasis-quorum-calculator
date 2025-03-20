@@ -35,6 +35,11 @@ func (td templateData) error(msg string) {
 	td["Error"] = msg
 }
 
+func (td templateData) hasError() bool {
+	_, ok := td["Error"]
+	return ok
+}
+
 // templateFuncs are the functions usable in the templates.
 var templateFuncs = template.FuncMap{
 	"Role":                 models.ParseRole,
@@ -97,32 +102,40 @@ func (c *Controller) Bind() http.Handler {
 	router := http.NewServeMux()
 	mw := auth.NewMiddleware(c.cfg, c.db, "/auth")
 
-	router.HandleFunc("/auth", c.auth)
-	router.HandleFunc("/login", c.login)
-	router.HandleFunc("/logout", mw.LoggedIn(c.logout))
-	router.HandleFunc("/", mw.User(c.home))
-
-	router.HandleFunc("/user", mw.User(c.user))
-	router.HandleFunc("/user_store", mw.User(c.userStore))
-	router.HandleFunc("/user_create", mw.Admin(c.userCreate))
-	router.HandleFunc("/user_edit", mw.Admin(c.userEdit))
-	router.HandleFunc("/user_edit_store", mw.Admin(c.userEditStore))
-	router.HandleFunc("/user_create_store", mw.Admin(c.userCreateStore))
-	router.HandleFunc("/user_committees_store", mw.Admin(c.userCommitteesStore))
-	router.HandleFunc("/users", mw.Admin(c.users))
-	router.HandleFunc("/users_store", mw.Admin(c.usersStore))
-
-	router.HandleFunc("/committee_edit", mw.Admin(c.committeeEdit))
-	router.HandleFunc("/committee_edit_store", mw.Admin(c.committeeEditStore))
-	router.HandleFunc("/committees", mw.Admin(c.committees))
-	router.HandleFunc("/committees_store", mw.Admin(c.committeesStore))
-	router.HandleFunc("/committee_create", mw.Admin(c.committeeCreate))
-	router.HandleFunc("/committee_store", mw.Admin(c.committeeStore))
-
-	router.HandleFunc("/manager", mw.Roles(c.manager, models.ManagerRole))
-
-	router.HandleFunc("/meetings_store", mw.Roles(c.meetingsStore, models.ManagerRole))
-	router.HandleFunc("/meeting_create", mw.Roles(c.meetingCreate, models.ManagerRole))
+	for _, route := range []struct {
+		pattern string
+		handler http.HandlerFunc
+	}{
+		// Auth
+		{"/auth", c.auth},
+		{"/login", c.login},
+		{"/logout", mw.LoggedIn(c.logout)},
+		{"/", mw.User(c.home)},
+		// User
+		{"/user", mw.User(c.user)},
+		{"/user_store", mw.User(c.userStore)},
+		{"/user_create", mw.Admin(c.userCreate)},
+		{"/user_edit", mw.Admin(c.userEdit)},
+		{"/user_edit_store", mw.Admin(c.userEditStore)},
+		{"/user_create_store", mw.Admin(c.userCreateStore)},
+		{"/user_committees_store", mw.Admin(c.userCommitteesStore)},
+		{"/users", mw.Admin(c.users)},
+		{"/users_store", mw.Admin(c.usersStore)},
+		// Committees
+		{"/committee_edit", mw.Admin(c.committeeEdit)},
+		{"/committee_edit_store", mw.Admin(c.committeeEditStore)},
+		{"/committees", mw.Admin(c.committees)},
+		{"/committees_store", mw.Admin(c.committeesStore)},
+		{"/committee_create", mw.Admin(c.committeeCreate)},
+		{"/committee_store", mw.Admin(c.committeeStore)},
+		// Manager
+		{"/manager", mw.Roles(c.manager, models.ManagerRole)},
+		{"/meetings_store", mw.Roles(c.meetingsStore, models.ManagerRole)},
+		{"/meeting_create", mw.Roles(c.meetingCreate, models.ManagerRole)},
+		{"/meeting_create_store", mw.Roles(c.meetingCreateStore, models.ManagerRole)},
+	} {
+		router.HandleFunc(route.pattern, route.handler)
+	}
 
 	static := http.FileServer(http.Dir(c.cfg.Web.Root))
 	router.Handle("/static/", static)
