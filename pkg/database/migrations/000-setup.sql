@@ -50,19 +50,21 @@ CREATE TABLE committee_roles (
     UNIQUE(nickname, committee_role_id, committees_id)
 );
 
-CREATE TABLE meeting (
+CREATE TABLE meetings (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     committees_id INTEGER   NOT NULL REFERENCES committees(id) ON DELETE CASCADE,
     running       BOOLEAN   NOT NULL DEFAULT FALSE,
     start_time    TIMESTAMP NOT NULL,
+    stop_time     TIMESTAMP NOT NULL,
     description   VARCHAR,
-    UNIQUE(committees_id, start_time)
+    UNIQUE(committees_id, start_time),
+    CHECK (strftime('%s', start_time) <= strftime('%s', stop_time))
 );
 
 CREATE TABLE attendees (
-    meeting_id INTEGER NOT NULL REFERENCES meeting(id)     ON DELETE CASCADE,
-    nickname   VARCHAR NOT NULL REFERENCES users(nickname) ON DELETE CASCADE,
-    UNIQUE(meeting_id, nickname)
+    meetings_id INTEGER NOT NULL REFERENCES meetings(id)    ON DELETE CASCADE,
+    nickname    VARCHAR NOT NULL REFERENCES users(nickname) ON DELETE CASCADE,
+    UNIQUE(meetings_id, nickname)
 );
 
 INSERT INTO users (nickname, password, lastname, is_admin)

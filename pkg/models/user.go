@@ -109,6 +109,17 @@ func (u *User) CountMemberships(role Role) int {
 	return count
 }
 
+// Committees returns an iterator over the committees of the user.
+func (u *User) Committees() iter.Seq[*Committee] {
+	return func(yield func(*Committee) bool) {
+		for _, m := range u.Memberships {
+			if !yield(m.Committee) {
+				return
+			}
+		}
+	}
+}
+
 // LoadUser loads a user with a given nickname from the database.
 func LoadUser(ctx context.Context, db *database.Database, nickname string) (*User, error) {
 

@@ -10,10 +10,18 @@ package web
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
+
+// hoursMinutes rounds the duration to minutes and return hours:minutes.
+func hoursMinutes(d time.Duration) string {
+	d = d.Round(time.Minute)
+	return fmt.Sprintf("%02d:%02dh", int(d.Hours()), int(d.Seconds())%60)
+}
 
 // shorten shortens a string to max. 40 characters.
 func shorten(v any) string {

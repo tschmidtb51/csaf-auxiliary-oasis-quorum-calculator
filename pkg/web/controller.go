@@ -37,9 +37,11 @@ func (td templateData) error(msg string) {
 
 // templateFuncs are the functions usable in the templates.
 var templateFuncs = template.FuncMap{
-	"Role":    models.ParseRole,
-	"Shorten": shorten,
-	"Args":    args,
+	"Role":              models.ParseRole,
+	"Shorten":           shorten,
+	"Args":              args,
+	"CommitteeIDFilter": models.CommitteeIDFilter,
+	"HoursMinutes":      hoursMinutes,
 }
 
 // NewController returns a new Controller.
@@ -115,6 +117,8 @@ func (c *Controller) Bind() http.Handler {
 	router.HandleFunc("/committees_store", mw.Admin(c.committeesStore))
 	router.HandleFunc("/committee_create", mw.Admin(c.committeeCreate))
 	router.HandleFunc("/committee_store", mw.Admin(c.committeeStore))
+
+	router.HandleFunc("/manager", mw.Roles(c.manager, models.ManagerRole))
 
 	static := http.FileServer(http.Dir(c.cfg.Web.Root))
 	router.Handle("/static/", static)
