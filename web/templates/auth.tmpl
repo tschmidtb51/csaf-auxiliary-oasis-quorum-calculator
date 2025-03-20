@@ -11,11 +11,19 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 <h2>Login</h2>
 {{ if .error }}<p class="notice">{{ .error }}</p>{{ end }}
 <form action="/login" method="post" accept-charset="UTF-8">
-  <label for="nickname">User:</label> <input type="text" id="nickname" name="nickname"
-	 {{- if .nickname }} value="{{ .nickname }}"{{ else }} autofocus{{ end }}>
+  <label for="nickname">User:</label>
+  <input type="text"
+         id="nickname"
+         name="nickname"
+         {{- if .nickname }} value="{{ .nickname }}"{{ else }} autofocus{{ end }}
+         required>
   <br/>
-  <label for="password">Password:</label> <input type="password" id="password" name="password"
-	 {{- if .nickname }} autofocus{{ end }}><br>
+  <label for="password">Password:</label>
+  <input type="password"
+         id="password"
+         name="password"
+         {{- if .nickname }} autofocus{{ end }}
+         required><br>
   <input type="submit" value="Login in">
 </form>
 {{ template "footer" }}

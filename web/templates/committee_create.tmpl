@@ -12,8 +12,12 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 <article>
 <p>Create new committee</p>
 <form action="/committee_store?SESSIONID={{ .Session.ID }}" method="post" accept-charset="UTF-8">
-  <label for="name">Name:</label> <input type="text" id="name" name="name"
-    {{ if .Name }} value="{{ .Name }}"{{ end }}><br>
+  <label for="name">Name:</label>
+  <input type="text"
+         id="name"
+         name="name"
+         {{ if .Name }} value="{{ .Name }}"{{ end }}
+         required><br>
     <label for="description">Description:</label>
     <textarea rows="3" id="description" name="description">
     {{- if .Description -}}{{ .Description }}{{ end }}</textarea><br>
