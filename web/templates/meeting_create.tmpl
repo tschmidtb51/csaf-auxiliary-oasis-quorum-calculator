@@ -1,0 +1,36 @@
+{{- /*
+This file is Free Software under the Apache-2.0 License
+without warranty, see README.md and LICENSE for details.
+
+SPDX-License-Identifier: Apache-2.0
+
+SPDX-FileCopyrightText: 2025 German Federal Office for Information Security (BSI) <https://www.bsi.bund.de>
+Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
+*/ -}}
+{{ template "header" . }}
+{{ template "error" . }}
+<article>
+<form action="/meeting_create_store" method="post" accept-charset="UTF-8">
+  {{ with .Meeting }}
+  <label for="start_time">Start time:</label>
+  <input type="datetime-local"
+         name="start_time"
+         id="start_time"
+         value="{{ if not .StartTime.IsZero }}{{ .StartTime.UTC.Format "2006-01-02T15:04" }}{{ end }}"
+         required><br>
+  <label for="Duration">Duration:</label>
+  <input type="input"
+         name="duration"
+         id="duration"
+         value="{{ if .Duration }}{{ HoursMinutes .Duration }}{{ end }}"
+         required><br>
+  <label for="description">Description:</label>
+  <textarea name="description">{{ if .Description }}{{ .Description }}{{ end }}</textarea>
+  {{ end }}
+  <input type="hidden" name="SESSIONID" value="{{ .Session.ID }}">
+  <input type="hidden" name="committee" value="{{ .Committee }}">
+  <input type="submit" value="Create">
+  <input type="reset" value="Reset">
+</form>
+</article>
+{{ template "footer" }}

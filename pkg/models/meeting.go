@@ -112,6 +112,7 @@ func LoadMeetings(
 	return meetings, nil
 }
 
+// DeleteMeetingsByID removes meetings the database identified by their id.
 func DeleteMeetingsByID(
 	ctx context.Context,
 	db *database.Database,

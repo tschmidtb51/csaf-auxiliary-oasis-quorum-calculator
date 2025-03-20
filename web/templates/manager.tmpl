@@ -37,8 +37,8 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <tr>
       <td><input type="checkbox" name="meetings" value="{{ .ID }}"></td>
       <td><a href="/meeting_edit?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}"
-             >{{ .StartTime.UTC.Format "2006-01-02 15:04:05 MST" }}</a></td>
-      <td>{{ .Duration | HoursMinutes }} </td>
+             ><time datetime="{{ .StartTime.UTC.Format "2006-01-02T15:04:05Z07:00" }}">{{ .StartTime.UTC.Format "2006-01-02 15:04 MST" }}</time></a></td>
+      <td><time datetime="{{ .Duration | DatetimeHoursMinutes }}">{{ .Duration | HoursMinutes }}</time></td>
       <td>{{ if .Description }}{{ Shorten .Description }}{{ end }}</td>
     </tr>
   {{ end }}

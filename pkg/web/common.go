@@ -17,10 +17,30 @@ import (
 	"unicode/utf8"
 )
 
-// hoursMinutes rounds the duration to minutes and return hours:minutes.
+// datetimeHoursMinutes rounds the duration to minutes
+// and returns a value suitable for datetime attributes.
+func datetimeHoursMinutes(d time.Duration) string {
+	d = d.Round(time.Minute)
+	hours := int(d.Hours())
+	minutes := int(d.Minutes()) % 60
+	return fmt.Sprintf("PT%dH%dM", hours, minutes)
+}
+
+// hoursMinutes rounds the duration to minutes
+// and returns a human form.
 func hoursMinutes(d time.Duration) string {
 	d = d.Round(time.Minute)
-	return fmt.Sprintf("%02d:%02dh", int(d.Hours()), int(d.Seconds())%60)
+	hours := int(d.Hours())
+	minutes := int(d.Minutes()) % 60
+	var b strings.Builder
+	b.WriteString(strconv.Itoa(hours))
+	b.WriteByte('h')
+	if minutes != 0 {
+		b.WriteByte(' ')
+		b.WriteString(strconv.Itoa(minutes))
+		b.WriteByte('m')
+	}
+	return b.String()
 }
 
 // shorten shortens a string to max. 40 characters.

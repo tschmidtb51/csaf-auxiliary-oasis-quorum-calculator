@@ -11,6 +11,7 @@ package web
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/models"
@@ -60,4 +61,23 @@ func (c *Controller) meetingsStore(w http.ResponseWriter, r *http.Request) {
 		"Meetings": remaining,
 	}
 	check(w, r, c.tmpls.ExecuteTemplate(w, "manager.tmpl", data))
+}
+
+func (c *Controller) meetingCreate(w http.ResponseWriter, r *http.Request) {
+	committee, err := strconv.ParseInt(r.FormValue("committee"), 10, 64)
+	if !checkParam(w, err) {
+		return
+	}
+	ctx := r.Context()
+	now := time.Now()
+	data := templateData{
+		"Session": auth.SessionFromContext(ctx),
+		"User":    auth.UserFromContext(ctx),
+		"Meeting": &models.Meeting{
+			StartTime: now,
+			StopTime:  now.Add(time.Hour),
+		},
+		"Committee": committee,
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "meeting_create.tmpl", data))
 }
