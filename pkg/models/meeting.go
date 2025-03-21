@@ -184,3 +184,20 @@ func (m *Meeting) StoreNew(ctx context.Context, db *database.Database) error {
 	}
 	return nil
 }
+
+// Store updates a meeting in the database.
+func (m *Meeting) Store(ctx context.Context, db *database.Database) error {
+	const updateSQL = `UPDATE meetings SET ` +
+		`start_time = ?,` +
+		`stop_time = ?,` +
+		`description = ? ` +
+		`WHERE id = ? AND committees_id = ?`
+	if _, err := db.DB.ExecContext(ctx, updateSQL,
+		m.StartTime,
+		m.StopTime,
+		m.Description,
+		m.ID, m.CommitteeID); err != nil {
+		return fmt.Errorf("updating meeting failed: %w", err)
+	}
+	return nil
+}

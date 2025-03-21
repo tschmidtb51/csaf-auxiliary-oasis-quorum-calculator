@@ -10,7 +10,6 @@ package web
 
 import (
 	"net/http"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -94,9 +93,9 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	var (
+		description = nilString(strings.TrimSpace(r.FormValue("description")))
 		startTime   = r.FormValue("start_time")
 		duration    = r.FormValue("duration")
-		description = nilString(strings.TrimSpace(r.FormValue("description")))
 		s, errS     = time.ParseInLocation("2006-01-02T15:04", startTime, time.UTC)
 		d, errD     = parseDuration(duration)
 		ctx         = r.Context()
@@ -128,8 +127,7 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 		check(w, r, c.tmpls.ExecuteTemplate(w, "meeting_create.tmpl", data))
 		return
 	}
-	seq := slices.Values([]int64{committee})
-	meetings, err := models.LoadMeetings(ctx, c.db, seq)
+	meetings, err := models.LoadMeetings(ctx, c.db, misc.Values(committee))
 	if !check(w, r, err) {
 		return
 	}
@@ -175,11 +173,16 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 	var (
 		meetingID, err1   = strconv.ParseInt(r.FormValue("meeting"), 10, 64)
 		committeeID, err2 = strconv.ParseInt(r.FormValue("committee"), 10, 64)
+		description       = nilString(strings.TrimSpace(r.FormValue("description")))
+		startTime         = r.FormValue("start_time")
+		duration          = r.FormValue("duration")
+		s, errS           = time.ParseInLocation("2006-01-02T15:04", startTime, time.UTC)
+		d, errD           = parseDuration(duration)
+		ctx               = r.Context()
 	)
 	if !checkParam(w, err1, err2) {
 		return
 	}
-	ctx := r.Context()
 	meeting, err := models.LoadMeeting(ctx, c.db, meetingID, committeeID)
 	if !check(w, r, err) {
 		return
@@ -188,11 +191,41 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		c.manager(w, r)
 		return
 	}
+	meeting.Description = description
 	data := templateData{
 		"Session":   auth.SessionFromContext(ctx),
 		"User":      auth.UserFromContext(ctx),
 		"Meeting":   meeting,
 		"Committee": committeeID,
 	}
-	check(w, r, c.tmpls.ExecuteTemplate(w, "meeting_edit.tmpl", data))
+	switch {
+	case errS != nil && errD != nil:
+		data.error("Start time and duration are invalid.")
+		s, d = time.Now(), time.Hour
+	case errS != nil:
+		data.error("Start time is invalid.")
+		s = time.Now()
+	case errD != nil:
+		data.error("Duration is invalid.")
+		d = time.Hour
+	}
+	meeting.StartTime = s
+	meeting.StopTime = s.Add(d)
+	if data.hasError() {
+		check(w, r, c.tmpls.ExecuteTemplate(w, "meeting_edit.tmpl", data))
+		return
+	}
+	meetings, err := models.LoadMeetings(ctx, c.db, misc.Values(committeeID))
+	if !check(w, r, err) {
+		return
+	}
+	if meetings.Contains(models.OverlapFilter(meeting.StartTime, meeting.StopTime)) {
+		data.error("Time range collides with another meeting in this committee.")
+		check(w, r, c.tmpls.ExecuteTemplate(w, "meeting_edit.tmpl", data))
+		return
+	}
+	if !check(w, r, meeting.Store(ctx, c.db)) {
+		return
+	}
+	c.manager(w, r)
 }
