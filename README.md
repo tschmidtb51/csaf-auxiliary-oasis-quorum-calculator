@@ -14,5 +14,6 @@ tail oqcd.log
 
 echo -e '[database]\nmigrate = false' > oqcd.toml
 ./oqcd &
+sleep 1
 tail -1 oqcd.log
 ```
