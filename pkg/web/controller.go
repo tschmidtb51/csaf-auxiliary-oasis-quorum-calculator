@@ -10,10 +10,8 @@
 package web
 
 import (
-	"errors"
 	"fmt"
 	"html/template"
-	"log/slog"
 	"net/http"
 	"path/filepath"
 
@@ -71,23 +69,6 @@ func NewController(
 	}, nil
 }
 
-func checkParam(w http.ResponseWriter, errs ...error) bool {
-	if err := errors.Join(errs...); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return false
-	}
-	return true
-}
-
-func check(w http.ResponseWriter, r *http.Request, err error) bool {
-	if err != nil {
-		slog.ErrorContext(r.Context(), "internal error", "error", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return false
-	}
-	return true
-}
-
 func (c *Controller) home(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement me!
 	ctx := r.Context()
@@ -135,6 +116,7 @@ func (c *Controller) Bind() http.Handler {
 		{"/meeting_create", mw.Roles(c.meetingCreate, models.ManagerRole)},
 		{"/meeting_create_store", mw.Roles(c.meetingCreateStore, models.ManagerRole)},
 		{"/meeting_edit", mw.Roles(c.meetingEdit, models.ManagerRole)},
+		{"/meeting_edit_store", mw.Roles(c.meetingEditStore, models.ManagerRole)},
 	} {
 		router.HandleFunc(route.pattern, route.handler)
 	}

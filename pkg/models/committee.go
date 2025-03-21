@@ -40,6 +40,12 @@ func DeleteCommitteesByID(ctx context.Context, db *database.Database, ids ...int
 	return tx.Commit()
 }
 
+// GetID returns the id of this committee.
+// Useful together with [misc.Map].
+func (c *Committee) GetID() int64 {
+	return c.ID
+}
+
 // LoadCommittees loads all committees ordered by name.
 func LoadCommittees(ctx context.Context, db *database.Database) ([]*Committee, error) {
 	const loadSQL = `SELECT id, name, description FROM committees ` +

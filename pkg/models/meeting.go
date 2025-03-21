@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/database"
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/misc"
 )
 
 // Meeting holds the informations about a meeting.
@@ -56,13 +57,7 @@ func (m *Meeting) Duration() time.Duration {
 
 // Filter returns a sequence of meetings which fulfill the given condition.
 func (ms Meetings) Filter(cond func(m *Meeting) bool) iter.Seq[*Meeting] {
-	return func(yield func(m *Meeting) bool) {
-		for _, m := range ms {
-			if cond(m) && !yield(m) {
-				return
-			}
-		}
-	}
+	return misc.Filter(slices.Values(ms), cond)
 }
 
 // Contains checks if there is a meeting fulfilling the given condition.

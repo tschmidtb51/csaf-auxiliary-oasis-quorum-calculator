@@ -11,14 +11,13 @@ package web
 import (
 	"errors"
 	"fmt"
-	"iter"
+	"log/slog"
+	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
-
-	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/models"
 )
 
 // datetimeHoursMinutes rounds the duration to minutes
@@ -136,15 +135,24 @@ func parseDuration(d string) (time.Duration, error) {
 	return time.Duration(h)*time.Hour + time.Duration(m)*time.Minute, nil
 }
 
-func idFromCommittee(c *models.Committee) int64 { return c.ID }
-
-// transform returns a map iterator on a sequence.
-func transform[S, T any](seq iter.Seq[S], xform func(S) T) iter.Seq[T] {
-	return func(yield func(T) bool) {
-		for s := range seq {
-			if !yield(xform(s)) {
-				return
-			}
-		}
+// checkParam checks a list of errors if there are any.
+// In this case it issues a bad request into the given response writer.
+func checkParam(w http.ResponseWriter, errs ...error) bool {
+	if err := errors.Join(errs...); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return false
 	}
+	return true
+}
+
+// check checks a given error, logs it and issues an internal server error
+// into the given response writer.
+func check(w http.ResponseWriter, r *http.Request, err error) bool {
+	if err != nil {
+		slog.ErrorContext(r.Context(), "internal error", "error", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
+		return false
+	}
+	return true
 }
