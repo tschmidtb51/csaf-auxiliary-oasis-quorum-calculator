@@ -142,3 +142,29 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 	}
 	c.manager(w, r)
 }
+
+func (c *Controller) meetingEdit(w http.ResponseWriter, r *http.Request) {
+	var (
+		meetingID, err1   = strconv.ParseInt(r.FormValue("meeting"), 10, 64)
+		committeeID, err2 = strconv.ParseInt(r.FormValue("committee"), 10, 64)
+	)
+	if !checkParam(w, err1, err2) {
+		return
+	}
+	ctx := r.Context()
+	meeting, err := models.LoadMeeting(ctx, c.db, meetingID, committeeID)
+	if !check(w, r, err) {
+		return
+	}
+	if meeting == nil {
+		c.manager(w, r)
+		return
+	}
+	data := templateData{
+		"Session":   auth.SessionFromContext(ctx),
+		"User":      auth.UserFromContext(ctx),
+		"Meeting":   meeting,
+		"Committee": committeeID,
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "meeting_edit.tmpl", data))
+}

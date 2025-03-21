@@ -10,6 +10,7 @@
 package web
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"log/slog"
@@ -70,8 +71,8 @@ func NewController(
 	}, nil
 }
 
-func checkParam(w http.ResponseWriter, err error) bool {
-	if err != nil {
+func checkParam(w http.ResponseWriter, errs ...error) bool {
+	if err := errors.Join(errs...); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return false
 	}
@@ -133,6 +134,7 @@ func (c *Controller) Bind() http.Handler {
 		{"/meetings_store", mw.Roles(c.meetingsStore, models.ManagerRole)},
 		{"/meeting_create", mw.Roles(c.meetingCreate, models.ManagerRole)},
 		{"/meeting_create_store", mw.Roles(c.meetingCreateStore, models.ManagerRole)},
+		{"/meeting_edit", mw.Roles(c.meetingEdit, models.ManagerRole)},
 	} {
 		router.HandleFunc(route.pattern, route.handler)
 	}

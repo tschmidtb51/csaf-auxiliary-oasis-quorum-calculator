@@ -10,11 +10,11 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ template "header" . }}
 {{ template "error" . }}
 <article>
-<form action="/meeting_create_store" method="post" accept-charset="UTF-8">
+<form action="/meeting_edit_store" method="post" accept-charset="UTF-8">
   {{ template "meeting" .Meeting }}
   <input type="hidden" name="SESSIONID" value="{{ .Session.ID }}">
   <input type="hidden" name="committee" value="{{ .Committee }}">
-  <input type="submit" value="Create">
+  <input type="submit" value="Update">
   <input type="reset" value="Reset">
 </form>
 </article>

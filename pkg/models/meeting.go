@@ -11,6 +11,7 @@ package models
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"iter"
 	"slices"
@@ -67,6 +68,32 @@ func (ms Meetings) Filter(cond func(m *Meeting) bool) iter.Seq[*Meeting] {
 // Contains checks if there is a meeting fulfilling the given condition.
 func (ms Meetings) Contains(cond func(m *Meeting) bool) bool {
 	return slices.ContainsFunc(ms, cond)
+}
+
+// LoadMeeting loads a meeting by its id.
+func LoadMeeting(
+	ctx context.Context, db *database.Database,
+	meetingID, committeeID int64,
+) (*Meeting, error) {
+	meeting := Meeting{
+		ID:          meetingID,
+		CommitteeID: committeeID,
+	}
+	const loadSQL = `SELECT running, start_time, stop_time, description ` +
+		`FROM meetings ` +
+		`WHERE id = ? AND committees_id = ?`
+	switch err := db.DB.QueryRowContext(ctx, loadSQL, meetingID, committeeID).Scan(
+		&meeting.Running,
+		&meeting.StartTime,
+		&meeting.StopTime,
+		&meeting.Description,
+	); {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil, nil
+	case err != nil:
+		return nil, fmt.Errorf("loading meeting failed: %w", err)
+	}
+	return &meeting, nil
 }
 
 // LoadMeetings loads meetings for a sequence of committees.
