@@ -42,7 +42,7 @@ func (hb *HexBytes) UnmarshalText(text []byte) error {
 }
 
 func (s *Sessions) presetDefaults() {
-	if s.Secret == nil {
+	if len(s.Secret) == 0 {
 		s.Secret = make([]byte, 16)
 		rand.Read(s.Secret)
 		skey := hex.EncodeToString(s.Secret)

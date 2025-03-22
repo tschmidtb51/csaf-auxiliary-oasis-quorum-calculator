@@ -5,13 +5,35 @@
 A simple tool to calculate the quorum for OASIS TCs (definitely JavaScript-free)
 
 
-```bash
-go build -o ./oqcd ./...
+Build
+```shell
+make
+```
 
-OQC_DB_MIGRATE=true ./oqcd -c ""
-tail oqcd.log
+Create an initial config file.
+```shell
+cp docs/example-oqcd.toml oqcd.toml
+```
 
-./oqcd -c "" &
-sleep 1
-tail -1 oqcd.log
+Do the initial database migration.
+```shell
+OQC_DB_MIGRATE=true ./bin/oqcd
+```
+
+Extract the password of `admin`. Use it to log in.
+```shell
+sed -En 's/.*user=admin.+password=([0-9a-zA-Z]+).*/\1/p' oqcd.log
+```
+
+The sessions are signed with a key.
+To have sessions that survive restaring oqcd
+you need store the signing secret into the config file.
+```shell
+SECRET="`sed -En 's/.*session key.+secret=([[:xdigit:]]+).*/\1/p' oqcd.log`
+sed -i "s/#secret =.*/secret = \"$SECRET\"/" oqcd.toml 
+```
+
+Starting
+```shell
+./bin/oqcd
 ```

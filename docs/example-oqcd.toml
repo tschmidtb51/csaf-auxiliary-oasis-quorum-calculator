@@ -1,29 +1,29 @@
 # Logging configuration
-[log]
-file = "oqcd.log"
-level = "INFO"        # Options: DEBUG, INFO, WARN, ERROR
-source = false
-json = false
+#[log]
+#file = "oqcd.log"
+#level = "INFO"        # Options: DEBUG, INFO, WARN, ERROR
+#source = false
+#json = false
 
 # Web server configuration
-[web]
-host = "localhost"
-port = 8083
-root = "web"
+#[web]
+#host = "localhost"
+#port = 8083
+#root = "web"
 
 # Database configuration
-[database]
-database = "oqcd.sqlite"
-driver = "sqlite3"
-migrate = false
-terminate_after_migration = true
-max_open_conns = 0
-max_idle_conns = 0
-conn_max_lifetime = "0s"   # Duration format (e.g., "1h", "30m", "0s")
-conn_max_idletime = "0s"
+#[database]
+#database = "oqcd.sqlite"
+#driver = "sqlite3"
+#migrate = false
+#terminate_after_migration = true
+#max_open_conns = 0
+#max_idle_conns = 0
+#conn_max_lifetime = "0s"   # Duration format (e.g., "1h", "30m", "0s")
+#conn_max_idletime = "0s"
 
 # Sessions configuration
-[sessions]
-secret = ""               # Needs to be a random hex
-max_age = "1h"
+#[sessions]
+#secret = ""               # Needs to be a random hex
+#max_age = "1h"
 
