@@ -32,11 +32,15 @@ const (
 	MemberRole
 )
 
+// MemberStatus is the status of a member in a committee.
 type MemberStatus int
 
 const (
+	// Member has no voting rights.
 	Member MemberStatus = iota
+	// Voting is member with voting rights.
 	Voting
+	// NoneVoting is a persistent none voter.
 	NoneVoting
 )
 
