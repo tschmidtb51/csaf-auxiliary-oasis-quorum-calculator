@@ -16,6 +16,7 @@ import (
 	"iter"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/database"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/misc"
@@ -30,6 +31,31 @@ const (
 	// MemberRole is the member role.
 	MemberRole
 )
+
+type MemberStatus int
+
+const (
+	Member MemberStatus = iota
+	Voting
+	NoneVoting
+)
+
+// Membership is the membership of a user in a committee.
+type Membership struct {
+	Committee *Committee
+	Status    MemberStatus
+	Roles     []Role
+}
+
+// User is the from the database.
+type User struct {
+	Nickname    string
+	Firstname   *string
+	Lastname    *string
+	IsAdmin     bool
+	Memberships []*Membership
+	Password    *string
+}
 
 // ParseRole parses a role from a string.
 func ParseRole(s string) (Role, error) {
@@ -51,24 +77,36 @@ func (r Role) String() string {
 	case MemberRole:
 		return "member"
 	default:
-		return "unknown role"
+		return fmt.Sprintf("unknown role (%d)", r)
 	}
 }
 
-// Membership is the membership of a user in a committee.
-type Membership struct {
-	Committee *Committee
-	Roles     []Role
+// ParseMemberStatus parses a member status from a string.
+func ParseMemberStatus(s string) (MemberStatus, error) {
+	switch strings.ToLower(s) {
+	case "member":
+		return Member, nil
+	case "voting":
+		return Voting, nil
+	case "nonevoting":
+		return NoneVoting, nil
+	default:
+		return 0, fmt.Errorf("invalid member status %q", s)
+	}
 }
 
-// User is the from the database.
-type User struct {
-	Nickname    string
-	Firstname   *string
-	Lastname    *string
-	IsAdmin     bool
-	Memberships []*Membership
-	Password    *string
+// String implements [fmt.Stringer].
+func (ms MemberStatus) String() string {
+	switch ms {
+	case Member:
+		return "member"
+	case Voting:
+		return "voting"
+	case NoneVoting:
+		return "nonevoting"
+	default:
+		return fmt.Sprintf("unknown member status (%d)", ms)
+	}
 }
 
 // IsMember returns true if user is member of a committee with a given name.
@@ -185,6 +223,29 @@ func LoadUser(ctx context.Context, db *database.Database, nickname string) (*Use
 	}(); err != nil {
 		return nil, err
 	}
+
+	// Collect member status in comittees.
+	if len(user.Memberships) > 0 {
+		const memberStatusSQL = `SELECT status FROM member_history ` +
+			`WHERE nickname = ? AND committees_id = ? ` +
+			`ORDER BY unixepoch(since) DESC LIMIT 1`
+		stmt, err := tx.PrepareContext(ctx, memberStatusSQL)
+		if err != nil {
+			return nil, fmt.Errorf("preparing status failed: %w", err)
+		}
+		defer stmt.Close()
+		for _, ms := range user.Memberships {
+			switch err := stmt.QueryRowContext(
+				ctx, user.Nickname, ms.Committee.ID).Scan(&ms.Status); {
+			case errors.Is(err, sql.ErrNoRows):
+				// default to member,
+				ms.Status = Member
+			case err != nil:
+				return nil, fmt.Errorf("querying member status failed: %w", err)
+			}
+		}
+	}
+
 	return &user, nil
 }
 
@@ -303,17 +364,60 @@ func UpdateMemberships(
 	if _, err := tx.ExecContext(ctx, deleteSQL, nickname); err != nil {
 		return fmt.Errorf("deleting committee roles failed: %w", err)
 	}
-	const insertSQL = `INSERT INTO committee_roles (nickname, committees_id, committee_role_id) ` +
-		`VALUES (?, ?, ?)`
-	stmt, err := tx.PrepareContext(ctx, insertSQL)
-	if err != nil {
-		return fmt.Errorf("preparing insert into committee roles failed: %w", err)
+
+	const (
+		insertRoleSQL = `INSERT INTO committee_roles ` +
+			`(nickname, committees_id, committee_role_id) ` +
+			`VALUES (?, ?, ?)`
+		queryStatusSQL = `SELECT status FROM member_history ` +
+			`WHERE nickname = ? AND committees_id = ? ` +
+			`ORDER BY unixepoch(since) DESC LIMIT 1`
+		insertStatusSQL = `INSERT INTO member_history ` +
+			`(nickname, committees_id, status, since) ` +
+			`VALUES (?, ?, ?, ?)`
+	)
+	var insertRoleStmt, queryStatusStmt, insertStatusStmt *sql.Stmt
+
+	for _, s := range []struct {
+		query string
+		stmt  **sql.Stmt
+	}{
+		{insertRoleSQL, &insertRoleStmt},
+		{queryStatusSQL, &queryStatusStmt},
+		{insertStatusSQL, &insertStatusStmt},
+	} {
+		stmt, err := tx.PrepareContext(ctx, s.query)
+		if err != nil {
+			return fmt.Errorf("preparing %q failed: %w", s.query, err)
+		}
+		*s.stmt = stmt
+		defer stmt.Close()
 	}
-	defer stmt.Close()
+
+	now := time.Now().UTC()
 	for ms := range memberships {
 		for _, r := range ms.Roles {
-			if _, err := stmt.ExecContext(ctx, nickname, ms.Committee.ID, r); err != nil {
+			if _, err := insertRoleStmt.ExecContext(
+				ctx, nickname, ms.Committee.ID, r); err != nil {
 				return fmt.Errorf("inserting into committee roles failed: %w", err)
+			}
+		}
+		if !ms.HasRole(MemberRole) {
+			continue
+		}
+		var status MemberStatus
+		switch err := queryStatusStmt.QueryRowContext(
+			ctx, nickname, ms.Committee.ID).Scan(&status); {
+		case errors.Is(err, sql.ErrNoRows):
+			status = MemberStatus(^0) // Invalid value to force insert.
+		case err != nil:
+			return fmt.Errorf("querying status failed: %w", err)
+		}
+		// Only insert new one if it differs from the previous.
+		if status != ms.Status {
+			if _, err := insertStatusStmt.ExecContext(
+				ctx, nickname, ms.Committee.ID, ms.Status, now); err != nil {
+				return fmt.Errorf("inserting status failed: %w", err)
 			}
 		}
 	}

@@ -232,11 +232,23 @@ func (c *Controller) userCommitteesStore(w http.ResponseWriter, r *http.Request)
 		if ms == nil {
 			ms = &models.Membership{
 				Committee: &models.Committee{ID: id},
+				Status:    models.Member,
 			}
 			memberships[id] = ms
 		}
 		ms.Roles = append(ms.Roles, role)
 	}
+	// Collect the status values
+	for _, ms := range memberships {
+		if v := r.FormValue(fmt.Sprintf("status%d", ms.Committee.ID)); v != "" {
+			status, err := models.ParseMemberStatus(v)
+			if !checkParam(w, err) {
+				return
+			}
+			ms.Status = status
+		}
+	}
+
 	nickname := r.FormValue("nickname")
 	ctx := r.Context()
 	if !check(w, r, models.UpdateMemberships(

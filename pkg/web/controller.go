@@ -42,6 +42,7 @@ func (td templateData) hasError() bool {
 // templateFuncs are the functions usable in the templates.
 var templateFuncs = template.FuncMap{
 	"Role":                 models.ParseRole,
+	"MemberStatus":         models.ParseMemberStatus,
 	"Shorten":              shorten,
 	"Args":                 args,
 	"CommitteeIDFilter":    models.CommitteeIDFilter,
