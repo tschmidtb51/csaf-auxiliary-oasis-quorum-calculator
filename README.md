@@ -22,15 +22,15 @@ OQC_DB_MIGRATE=true ./bin/oqcd
 
 Extract the password of `admin`. Use it to log in.
 ```shell
-sed -En 's/.*user=admin.+password=([0-9a-zA-Z]+).*/\1/p' oqcd.log
+grep -oP 'user=admin.+password=\K[0-9a-zA-Z]+' oqcd.log
 ```
 
 The sessions are signed with a key.
 To have sessions that survive restaring oqcd
 you need to store the signing secret into the config file.
 ```shell
-SECRET=`sed -En 's/.*session key.+secret=([[:xdigit:]]+).*/\1/p' oqcd.log`
-sed -i -e 's/^#secret =.*/secret = "'$SECRET'"/' -e 's/^#\[sessions\]/[sessions]/' oqcd.toml
+sed -i -e "s|^#secret =.*|secret = \"$(grep -oP 'session key.+secret=\K[0-9a-f]+' oqcd.log)\"|" \
+       -e 's|^#\[sessions\]|[sessions]|' oqcd.toml
 ```
 
 Starting
