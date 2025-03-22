@@ -56,9 +56,10 @@ func CommitteeIDFilter(id int64) func(m *Meeting) bool {
 
 // OverlapFilter creates a filter which checks if a meeting overlaps
 // a given interval.
-func OverlapFilter(start, stop time.Time) func(m *Meeting) bool {
+func OverlapFilter(start, stop time.Time, exceptions ...int64) func(m *Meeting) bool {
 	return func(m *Meeting) bool {
-		return !(m.StopTime.Before(start) || stop.Before(m.StartTime))
+		return !(m.StopTime.Before(start) || stop.Before(m.StartTime)) &&
+			!slices.Contains(exceptions, m.ID)
 	}
 }
 

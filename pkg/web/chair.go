@@ -219,7 +219,8 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 	if !check(w, r, err) {
 		return
 	}
-	if meetings.Contains(models.OverlapFilter(meeting.StartTime, meeting.StopTime)) {
+	if meetings.Contains(
+		models.OverlapFilter(meeting.StartTime, meeting.StopTime, meetingID)) {
 		data.error("Time range collides with another meeting in this committee.")
 		check(w, r, c.tmpls.ExecuteTemplate(w, "meeting_edit.tmpl", data))
 		return
