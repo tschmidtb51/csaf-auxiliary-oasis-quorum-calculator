@@ -21,11 +21,15 @@ import (
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/misc"
 )
 
+// MeetingStatus represents the current status of a meeting.
 type MeetingStatus int
 
 const (
+	// MeetingOnHold represents a meeting that is currently not running.
 	MeetingOnHold MeetingStatus = iota
+	// MeetingRunning represents a meeting that is currently running.
 	MeetingRunning
+	// MeetingConcluded represents a finished meeting.
 	MeetingConcluded
 )
 
