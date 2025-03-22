@@ -27,10 +27,10 @@ sed -En 's/.*user=admin.+password=([0-9a-zA-Z]+).*/\1/p' oqcd.log
 
 The sessions are signed with a key.
 To have sessions that survive restaring oqcd
-you need store the signing secret into the config file.
+you need to store the signing secret into the config file.
 ```shell
-SECRET="`sed -En 's/.*session key.+secret=([[:xdigit:]]+).*/\1/p' oqcd.log`
-sed -i "s/#secret =.*/secret = \"$SECRET\"/" oqcd.toml 
+SECRET=`sed -En 's/.*session key.+secret=([[:xdigit:]]+).*/\1/p' oqcd.log`
+sed -i -e 's/^#secret =.*/secret = "'$SECRET'"/' -e 's/^#\[sessions\]/[sessions]/' oqcd.toml
 ```
 
 Starting

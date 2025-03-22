@@ -26,4 +26,3 @@
 #[sessions]
 #secret = ""               # Needs to be a random hex
 #max_age = "1h"
-
