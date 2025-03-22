@@ -27,10 +27,10 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
           <a href="/users?SESSIONID={{ .Session.ID }}">users</a>
           <a href="/committees?SESSIONID={{ .Session.ID }}">committees</a>
         {{ end }}
-        {{ $manager := .User.CountMemberships (Role "manager") }}
-        {{ $member  := .User.CountMemberships (Role "member") }}
-        {{ if $manager }}
-          <a href="/manager?SESSIONID={{ .Session.ID }}">manager ({{ $manager }})</a>
+        {{ $chair  := .User.CountMemberships (Role "chair") }}
+        {{ $member := .User.CountMemberships (Role "member") }}
+        {{ if $chair }}
+          <a href="/chair?SESSIONID={{ .Session.ID }}">chair ({{ $chair }})</a>
         {{ end }}
         {{ if $member }}
           <a href="/member?SESSIONID={{ .Session.ID }}">member ({{ $member }})</a>
@@ -60,20 +60,20 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 
 {{ define "committees" -}}
 {{ if .Memberships }}
-{{ $member  := Role "member" }}
-{{ $manager := Role "manager" }}
+{{ $member := Role "member" }}
+{{ $chair  := Role "chair" }}
 <table>
   <thead>
     <th>Committee</th>
     <th>Member</th>
-    <th>Manager</th>
+    <th>Chair</th>
   </thead>
   <tbody>
   {{ range .Memberships }}
   <tr>
     <td>{{ .Committee.Name }}</td>
     <td>{{ if .HasRole $member  }}&#x2611;{{ else }}&#x2610;{{ end }}</td>
-    <td>{{ if .HasRole $manager }}&#x2611;{{ else }}&#x2610;{{ end }}</td>
+    <td>{{ if .HasRole $chair   }}&#x2611;{{ else }}&#x2610;{{ end }}</td>
   <tr>
   {{ end }}
   </tbody>
@@ -85,13 +85,13 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ $committees := .Committees }}
 {{ $user := .User }}
 {{ if $committees }}
-{{ $member  := Role "member" }}
-{{ $manager := Role "manager" }}
+{{ $member := Role "member" }}
+{{ $chair  := Role "chair" }}
 <table>
   <thead>
     <th>Committee</th>
     <th>Member</th>
-    <th>Manager</th>
+    <th>Chair</th>
   </thead>
   <tbody>
   {{ range $committees }}
@@ -100,10 +100,10 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     {{ $ms := $user.FindMembership .Name }}
     {{ if $ms }}
       <td><input type="checkbox" name="role_committee" value="member{{ .ID }}"{{  if $ms.HasRole $member  }} checked{{ end }}></td>
-      <td><input type="checkbox" name="role_committee" value="manager{{ .ID }}"{{ if $ms.HasRole $manager }} checked{{ end }}></td>
+      <td><input type="checkbox" name="role_committee" value="chair{{ .ID }}"{{ if $ms.HasRole $chair }} checked{{ end }}></td>
     {{ else }}
       <td><input name="role_committee" type="checkbox" value="member{{ .ID }}"></td>
-      <td><input name="role_committee" type="checkbox" value="manager{{ .ID }}"></td>
+      <td><input name="role_committee" type="checkbox" value="chair{{ .ID }}"></td>
     {{ end }}
   <tr>
   {{ end }}

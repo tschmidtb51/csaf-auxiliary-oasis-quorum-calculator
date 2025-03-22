@@ -10,12 +10,12 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ template "header" . }}
 {{- $sessionID := .Session.ID }}
 {{- $meetings  := .Meetings }}
-{{- $manager   := Role "manager" }}
+{{- $chair     := Role "chair" }}
 {{- $member    := Role "member" }}
 {{- $user      := .User }}
 {{range $user.Committees }}
 {{- $ms := $user.FindMembership .Name }}
-{{- if not ($ms.HasRole $manager) }}{{ continue }}{{ end }}
+{{- if not ($ms.HasRole $chair) }}{{ continue }}{{ end }}
 {{- $committeeID := .ID }}
 <article>
   Committee: <strong><b>{{ .Name }}</b></strong><br><br>

@@ -19,7 +19,7 @@ import (
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/models"
 )
 
-func (c *Controller) manager(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) chair(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	meetings, err := models.LoadMeetings(
@@ -33,7 +33,7 @@ func (c *Controller) manager(w http.ResponseWriter, r *http.Request) {
 		"User":     user,
 		"Meetings": meetings,
 	}
-	check(w, r, c.tmpls.ExecuteTemplate(w, "manager.tmpl", data))
+	check(w, r, c.tmpls.ExecuteTemplate(w, "chair.tmpl", data))
 }
 
 func (c *Controller) meetingsStore(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +65,7 @@ func (c *Controller) meetingsStore(w http.ResponseWriter, r *http.Request) {
 		"User":     user,
 		"Meetings": remaining,
 	}
-	check(w, r, c.tmpls.ExecuteTemplate(w, "manager.tmpl", data))
+	check(w, r, c.tmpls.ExecuteTemplate(w, "chair.tmpl", data))
 }
 
 func (c *Controller) meetingCreate(w http.ResponseWriter, r *http.Request) {
@@ -139,7 +139,7 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 	if !check(w, r, meeting.StoreNew(ctx, c.db)) {
 		return
 	}
-	c.manager(w, r)
+	c.chair(w, r)
 }
 
 func (c *Controller) meetingEdit(w http.ResponseWriter, r *http.Request) {
@@ -156,7 +156,7 @@ func (c *Controller) meetingEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if meeting == nil {
-		c.manager(w, r)
+		c.chair(w, r)
 		return
 	}
 	data := templateData{
@@ -188,7 +188,7 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if meeting == nil {
-		c.manager(w, r)
+		c.chair(w, r)
 		return
 	}
 	meeting.Description = description
@@ -227,5 +227,5 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 	if !check(w, r, meeting.Store(ctx, c.db)) {
 		return
 	}
-	c.manager(w, r)
+	c.chair(w, r)
 }

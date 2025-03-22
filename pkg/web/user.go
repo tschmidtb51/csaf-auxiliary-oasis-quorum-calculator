@@ -210,7 +210,7 @@ func (c *Controller) userEditStore(w http.ResponseWriter, r *http.Request) {
 	check(w, r, c.tmpls.ExecuteTemplate(w, "user_edit.tmpl", data))
 }
 
-var roleCommitteeRe = regexp.MustCompile(`(member|manager)(\d+)`)
+var roleCommitteeRe = regexp.MustCompile(`(member|chair)(\d+)`)
 
 func (c *Controller) userCommitteesStore(w http.ResponseWriter, r *http.Request) {
 	roleCommittees := r.Form["role_committee"]

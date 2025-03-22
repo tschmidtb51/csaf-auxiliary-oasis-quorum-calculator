@@ -46,7 +46,8 @@ func (s *Sessions) presetDefaults() {
 		s.Secret = make([]byte, 16)
 		rand.Read(s.Secret)
 		skey := hex.EncodeToString(s.Secret)
-		slog.Info("Generated new secret session key. Store in config to reuse it.", "secret", skey)
+		slog.Info("Generated new secret session key. "+
+			"Store in config to reuse it.", "secret", skey)
 	}
 }
 
@@ -57,7 +58,8 @@ func (s *Sessions) GenerateKey() (string, string) {
 	mac := hmac.New(sha1.New, s.Secret)
 	mac.Write(key)
 	sign := mac.Sum(nil)
-	return base64.URLEncoding.EncodeToString(key), base64.URLEncoding.EncodeToString(sign)
+	return base64.URLEncoding.EncodeToString(key),
+		base64.URLEncoding.EncodeToString(sign)
 }
 
 // CheckKey checks if the given key is a valid key signed by the session secret.

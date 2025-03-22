@@ -34,14 +34,32 @@ CREATE TABLE committees (
 
 CREATE TABLE committee_role (
     id          INTEGER PRIMARY KEY,
-    name        VARCHAR NOT NULL,
-    description VARCHAR NOT NULL,
-    UNIQUE(name)
+    name        VARCHAR NOT NULL UNIQUE,
+    description VARCHAR NOT NULL
 );
 
 INSERT INTO committee_role (id, name, description) VALUES
     (0, 'member', 'Regular committee member'),
-    (1, 'manager', 'Committee manager');
+    (1, 'chair', 'Committee chair');
+
+CREATE TABLE member_status (
+    id          INTEGER PRIMARY KEY,
+    name        VARCHAR NOT NULL UNIQUE,
+    description VARCHAR NOT NULL
+);
+
+INSERT INTO member_status (id, name, description) VALUES
+    (0, 'member', 'Regular committee member'),
+    (1, 'voting', 'Voting member'),
+    (2, 'nonevoting', 'Persistent none voting member');
+
+CREATE TABLE member_history (
+    nickname      VARCHAR   NOT NULL,
+    committees_id INTEGER   NOT NULL REFERENCES committees(id) ON DELETE CASCADE,
+    status        INTEGER   NOT NULL DEFAULT 0 REFERENCES member_status(id) ON DELETE CASCADE,
+    since         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(nickname, committees_id, status, since)
+);
 
 CREATE TABLE committee_roles (
     nickname          VARCHAR NOT NULL REFERENCES users(nickname)    ON DELETE CASCADE,
@@ -50,10 +68,21 @@ CREATE TABLE committee_roles (
     UNIQUE(nickname, committee_role_id, committees_id)
 );
 
+CREATE TABLE meeting_status (
+    id          INTEGER PRIMARY KEY,
+    name        VARCHAR NOT NULL UNIQUE,
+    description VARCHAR
+);
+
+INSERT INTO meeting_status (id, name, description) VALUES
+    (0, 'onhold',  'Waiting to get started or paused'),
+    (1, 'running', 'In progress'),
+    (2, 'concluded', 'Finalized');
+
 CREATE TABLE meetings (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     committees_id INTEGER   NOT NULL REFERENCES committees(id) ON DELETE CASCADE,
-    running       BOOLEAN   NOT NULL DEFAULT FALSE,
+    status        INTEGER   NOT NULL DEFAULT 0, -- on hold
     start_time    TIMESTAMP NOT NULL,
     stop_time     TIMESTAMP NOT NULL,
     description   VARCHAR,

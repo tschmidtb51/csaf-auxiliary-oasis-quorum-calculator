@@ -25,8 +25,8 @@ import (
 type Role int
 
 const (
-	// ManagerRole is the manager role.
-	ManagerRole Role = iota
+	// ChairRole is the manager role.
+	ChairRole Role = iota
 	// MemberRole is the member role.
 	MemberRole
 )
@@ -34,8 +34,8 @@ const (
 // ParseRole parses a role from a string.
 func ParseRole(s string) (Role, error) {
 	switch strings.ToLower(s) {
-	case "manager":
-		return ManagerRole, nil
+	case "chair":
+		return ChairRole, nil
 	case "member":
 		return MemberRole, nil
 	default:
@@ -46,7 +46,7 @@ func ParseRole(s string) (Role, error) {
 // String implements [fmt.Stringer].
 func (r Role) String() string {
 	switch r {
-	case ManagerRole:
+	case ChairRole:
 		return "manager"
 	case MemberRole:
 		return "member"

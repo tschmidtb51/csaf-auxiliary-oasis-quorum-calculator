@@ -21,11 +21,19 @@ import (
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/misc"
 )
 
+type MeetingStatus int
+
+const (
+	MeetingOnHold MeetingStatus = iota
+	MeetingRunning
+	MeetingConcluded
+)
+
 // Meeting holds the informations about a meeting.
 type Meeting struct {
 	ID          int64
 	CommitteeID int64
-	Running     bool
+	Status      MeetingStatus
 	StartTime   time.Time
 	StopTime    time.Time
 	Description *string
@@ -74,11 +82,11 @@ func LoadMeeting(
 		ID:          meetingID,
 		CommitteeID: committeeID,
 	}
-	const loadSQL = `SELECT running, start_time, stop_time, description ` +
+	const loadSQL = `SELECT status, start_time, stop_time, description ` +
 		`FROM meetings ` +
 		`WHERE id = ? AND committees_id = ?`
 	switch err := db.DB.QueryRowContext(ctx, loadSQL, meetingID, committeeID).Scan(
-		&meeting.Running,
+		&meeting.Status,
 		&meeting.StartTime,
 		&meeting.StopTime,
 		&meeting.Description,
@@ -102,7 +110,7 @@ func LoadMeetings(
 		return nil, err
 	}
 	defer tx.Rollback()
-	const loadSQL = `SELECT id, running, start_time, stop_time, description ` +
+	const loadSQL = `SELECT id, status, start_time, stop_time, description ` +
 		`FROM meetings ` +
 		`WHERE committees_id = ? `
 	stmt, err := tx.PrepareContext(ctx, loadSQL)
@@ -122,7 +130,7 @@ func LoadMeetings(
 				meeting := Meeting{CommitteeID: committee}
 				if err := rows.Scan(
 					&meeting.ID,
-					&meeting.Running,
+					&meeting.Status,
 					&meeting.StartTime,
 					&meeting.StopTime,
 					&meeting.Description,
