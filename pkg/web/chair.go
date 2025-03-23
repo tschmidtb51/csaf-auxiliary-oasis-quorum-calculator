@@ -169,7 +169,6 @@ func (c *Controller) meetingEdit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement me!
 	var (
 		meetingID, err1   = strconv.ParseInt(r.FormValue("meeting"), 10, 64)
 		committeeID, err2 = strconv.ParseInt(r.FormValue("committee"), 10, 64)
@@ -229,4 +228,63 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.chair(w, r)
+}
+
+func (c *Controller) meetingStatus(w http.ResponseWriter, r *http.Request) {
+	var (
+		meetingID, err1   = strconv.ParseInt(r.FormValue("meeting"), 10, 64)
+		committeeID, err2 = strconv.ParseInt(r.FormValue("committee"), 10, 64)
+		ctx               = r.Context()
+	)
+	if !checkParam(w, err1, err2) {
+		return
+	}
+	meeting, err := models.LoadMeeting(ctx, c.db, meetingID, committeeID)
+	if !check(w, r, err) {
+		return
+	}
+	if meeting == nil {
+		c.chair(w, r)
+		return
+	}
+	members, err := models.LoadCommitteeUsers(ctx, c.db, committeeID)
+	if !check(w, r, err) {
+		return
+	}
+	attendees, err := meeting.Attendees(ctx, c.db)
+	if !check(w, r, err) {
+		return
+	}
+	committee, err := models.LoadCommittee(ctx, c.db, committeeID)
+	if !check(w, r, err) {
+		return
+	}
+
+	var numVoters, attendingVoters int
+	for _, member := range members {
+		if ms := member.FindMembership(committee.Name); ms != nil &&
+			ms.HasRole(models.MemberRole) &&
+			ms.Status == models.Voting {
+			numVoters++
+			if attendees[member.Nickname] {
+				attendingVoters++
+			}
+		}
+	}
+
+	quorum := models.Quorum{
+		Number:  1 + numVoters/2,
+		Reached: attendingVoters >= (1 + numVoters/2),
+	}
+
+	data := templateData{
+		"Session":   auth.SessionFromContext(ctx),
+		"User":      auth.UserFromContext(ctx),
+		"Meeting":   meeting,
+		"Members":   members,
+		"Attendees": attendees,
+		"Quorum":    &quorum,
+		"Committee": committee,
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "meeting_status.tmpl", data))
 }

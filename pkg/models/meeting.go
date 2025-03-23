@@ -44,6 +44,12 @@ type Meeting struct {
 	Description *string
 }
 
+// Quorum is the quorum of this meeting.
+type Quorum struct {
+	Number  int
+	Reached bool
+}
+
 // Meetings is a slice of meetings.
 type Meetings []*Meeting
 
@@ -242,4 +248,24 @@ func (m *Meeting) Store(ctx context.Context, db *database.Database) error {
 		return fmt.Errorf("updating meeting failed: %w", err)
 	}
 	return nil
+}
+
+// Attendees loads the nicknames from the database which attend this meeting.
+func (m *Meeting) Attendees(ctx context.Context, db *database.Database) (map[string]bool, error) {
+	const loadAttendeesSQL = `SELECT nickname FROM attendees ` +
+		`WHERE meetings_id = ?`
+	attendees := make(map[string]bool)
+	rows, err := db.DB.QueryContext(ctx, loadAttendeesSQL, m.ID)
+	if err != nil {
+		return nil, fmt.Errorf("querying attendees failed: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var attendee string
+		if err := rows.Scan(&attendee); err != nil {
+			return nil, fmt.Errorf("scanning attendees failed: %w", err)
+		}
+		attendees[attendee] = true
+	}
+	return attendees, nil
 }

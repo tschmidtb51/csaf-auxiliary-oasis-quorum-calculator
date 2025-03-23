@@ -114,11 +114,12 @@ func (c *Controller) Bind() http.Handler {
 		{"/committee_store", mw.Admin(c.committeeStore)},
 		// Chair
 		{"/chair", mw.Roles(c.chair, models.ChairRole)},
-		{"/meetings_store", mw.Roles(c.meetingsStore, models.ChairRole)},
-		{"/meeting_create", mw.Roles(c.meetingCreate, models.ChairRole)},
-		{"/meeting_create_store", mw.Roles(c.meetingCreateStore, models.ChairRole)},
-		{"/meeting_edit", mw.Roles(c.meetingEdit, models.ChairRole)},
-		{"/meeting_edit_store", mw.Roles(c.meetingEditStore, models.ChairRole)},
+		{"/meetings_store", mw.CommitteeRoles(c.meetingsStore, models.ChairRole)},
+		{"/meeting_create", mw.CommitteeRoles(c.meetingCreate, models.ChairRole)},
+		{"/meeting_create_store", mw.CommitteeRoles(c.meetingCreateStore, models.ChairRole)},
+		{"/meeting_edit", mw.CommitteeRoles(c.meetingEdit, models.ChairRole)},
+		{"/meeting_edit_store", mw.CommitteeRoles(c.meetingEditStore, models.ChairRole)},
+		{"/meeting_status", mw.CommitteeRoles(c.meetingStatus, models.ChairRole)},
 	} {
 		router.HandleFunc(route.pattern, route.handler)
 	}

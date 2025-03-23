@@ -164,13 +164,15 @@ func (u *User) Committees() iter.Seq[*Committee] {
 
 // LoadUser loads a user with a given nickname from the database.
 func LoadUser(ctx context.Context, db *database.Database, nickname string) (*User, error) {
-
 	tx, err := db.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
+	return loadUserTx(ctx, tx, nickname)
+}
 
+func loadUserTx(ctx context.Context, tx *sql.Tx, nickname string) (*User, error) {
 	// Collect user details
 	user := User{Nickname: nickname}
 	const userSQL = `SELECT firstname, lastname, is_admin ` +
@@ -426,4 +428,49 @@ func UpdateMemberships(
 		}
 	}
 	return tx.Commit()
+}
+
+// LoadCommitteeUsers loads all users of a committee.
+func LoadCommitteeUsers(
+	ctx context.Context,
+	db *database.Database,
+	committeeID int64,
+) ([]*User, error) {
+	tx, err := db.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	// Load nicknames.
+	const committeeUsersSQL = `SELECT distinct(nickname) FROM committee_roles ` +
+		`WHERE committees_id = ? ` +
+		`ORDER BY nickname`
+	rows, err := tx.QueryContext(ctx, committeeUsersSQL, committeeID)
+	if err != nil {
+		return nil, fmt.Errorf("querying committee users failed: %w", err)
+	}
+	var nicknames []string
+	if err := func() error {
+		defer rows.Close()
+		for rows.Next() {
+			var nickname string
+			if err := rows.Scan(&nickname); err != nil {
+				return err
+			}
+			nicknames = append(nicknames, nickname)
+		}
+		return rows.Err()
+	}(); err != nil {
+		return nil, fmt.Errorf("scanning committee users failed: %w", err)
+	}
+	// Load users.
+	users := make([]*User, 0, len(nicknames))
+	for _, nickname := range nicknames {
+		user, err := loadUserTx(ctx, tx, nickname)
+		if err != nil {
+			return nil, fmt.Errorf("loading user failed: %w", err)
+		}
+		users = append(users, user)
+	}
+	return users, nil
 }
