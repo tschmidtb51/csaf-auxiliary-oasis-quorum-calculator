@@ -16,6 +16,11 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- $onhold    := eq .Meeting.Status (MeetingStatus "onhold") }}
 {{- $running   := eq .Meeting.Status (MeetingStatus "running") }}
 {{- $concluded := eq .Meeting.Status (MeetingStatus "concluded") }}
+{{- if $running }}
+<p><a href="/meeting_status?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}"
+      >&#x27F3; Refresh to see who has attended recently.</a>
+</p>
+{{- end }}
 <p>
 <strong>Committee</strong>: {{ $committeeName }}<br>
 {{ with .Meeting }}
