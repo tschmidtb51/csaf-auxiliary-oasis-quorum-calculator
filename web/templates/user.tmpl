@@ -9,10 +9,9 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 */ -}}
 {{ template "header" . }}
 {{ template "error" . }}
-<article>
+<fieldset>
+  <legend>User <strong>{{ .User.Nickname }}</strong></legend>
   <form action="/user_store" method="post" accept-charset="UTF-8">
-    Login name: <strong>{{ .User.Nickname }}</strong>
-    <br><br>
     <label for="firstname">First name:</label>
     <input type="text" id="firstname" name="firstname"
       {{ if .User.Firstname }}value="{{ .User.Firstname }}"{{ end }}><br>
@@ -28,11 +27,11 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <input type="submit" value="Save">
     <input type="reset" value="Reset">
   </form>
-</article>
+</fieldset>
 {{ if and (not .User.IsAdmin) .User.Memberships }}
-<article>
-  Committees:
+<fieldset>
+  <legend><strong>{{ .User.Nickname }}</strong>'s committees</legend>
   {{ template "committees" .User }}
-</article>
+</fieldset>
 {{ end }}
 {{ template "footer" }}

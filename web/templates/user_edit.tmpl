@@ -9,11 +9,10 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 */ -}}
 {{ template "header" . }}
 {{ template "error" . }}
-<article>
+<fieldset>
+  <legend>Edit <strong>{{ .NewUser.Nickname }}</strong></legend>
   <form action="/user_edit_store" method="post" accept-charset="UTF-8">
     {{ with .NewUser }}
-    Login name: <strong>{{ .Nickname }}</strong>
-    <br><br>
     <label for="firstname">First name:</label>
     <input type="text" id="firstname" name="firstname"
       {{ if .Firstname }}value="{{ .Firstname }}"{{ end }}><br>
@@ -24,17 +23,17 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <input type="password" placeholder="********" id="password" name="password">
     <label for="password2">Confirm password:</label>
     <input type="password" placeholder="********" id="password2" name="password2">
-    <br><br>
+    <br>
     <input type="hidden" name="nickname" value="{{ .Nickname }}">
     {{ end }}
     <input type="hidden" name="SESSIONID" value="{{ .Session.ID }}">
     <input type="submit" value="Save">
     <input type="reset" value="Reset">
   </form>
-</article>
+</fieldset>
 {{- if and (not .NewUser.IsAdmin) .Committees }}
-<article>
-  Committees:
+<fieldset>
+  <legend>Edit <strong>{{ .NewUser.Nickname }}</strong>'s committees</legend>
   <form action="/user_committees_store" method="post" accept-charset="UTF-8">
   {{ template "user_committees" Args "Committees" .Committees "User" .NewUser }}
     <input type="hidden" name="nickname" value="{{ .NewUser.Nickname }}">
@@ -42,6 +41,6 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <input type="submit" value="Save">
     <input type="reset" value="Reset">
   </form>
-</article>
+</fieldset>
 {{ end -}}
 {{ template "footer" }}

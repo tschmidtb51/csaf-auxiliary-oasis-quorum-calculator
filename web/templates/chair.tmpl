@@ -17,8 +17,8 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- $ms := $user.FindMembership .Name }}
 {{- if not ($ms.HasRole $chair) }}{{ continue }}{{ end }}
 {{- $committeeID := .ID }}
-<article>
-  Committee: <strong><b>{{ .Name }}</b></strong><br><br>
+<fieldset>
+  <legend>Committee <strong>{{ .Name }}</strong></legend>
   <a href="/meeting_create?SESSIONID={{ $sessionID }}&committee={{ $committeeID }}">Create meeting</a>
   {{ $filter := CommitteeIDFilter .ID }}
   {{ if $meetings.Contains $filter }}
@@ -50,6 +50,6 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   <input type="reset" value="Reset">
   </form>
   {{ end }}
-</article>
+</fieldset>
 {{ end }}
 {{ template "footer" }}

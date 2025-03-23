@@ -10,7 +10,8 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ template "header" . }}
 {{ $password  := .Password }}
 {{ $sessionID := .Session.ID }}
-<article>
+<fieldset>
+  <legend>User</legend>
   <p>User successfully created.</p>
   <table>
     {{ with .NewUser }}
@@ -38,10 +39,10 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     </tbody>
     {{ end }}
   </table>
-</article>
+</fieldset>
 {{- if and (not .NewUser.IsAdmin) .Committees }}
-<article>
-  Committees:
+<fieldset>
+  <legend>Committees</legend>
   <form action="/user_committees_store" method="post" accept-charset="UTF-8">
   {{ template "user_committees" Args "Committees" .Committees "User" .NewUser }}
     <input type="hidden" name="nickname" value="{{ .NewUser.Nickname }}">
@@ -49,6 +50,6 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <input type="submit" value="Save">
     <input type="reset" value="Reset">
   </form>
-</article>
+</fieldset>
 {{ end -}}
 {{ template "footer" }}
