@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"iter"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/database"
@@ -45,6 +46,34 @@ type Meeting struct {
 
 // Meetings is a slice of meetings.
 type Meetings []*Meeting
+
+// String implements [fmt.Stringer].
+func (m MeetingStatus) String() string {
+	switch m {
+	case MeetingOnHold:
+		return "onhold"
+	case MeetingRunning:
+		return "running"
+	case MeetingConcluded:
+		return "concluded"
+	default:
+		return fmt.Sprintf("unknown meeting status (%d)", m)
+	}
+}
+
+// ParseMeetingStatus parse a given string to a meeting status.
+func ParseMeetingStatus(s string) (MeetingStatus, error) {
+	switch strings.ToLower(s) {
+	case "onhold":
+		return MeetingOnHold, nil
+	case "running":
+		return MeetingRunning, nil
+	case "concluded":
+		return MeetingConcluded, nil
+	default:
+		return 0, fmt.Errorf("unknown meeting status %q", s)
+	}
+}
 
 // CommitteeIDFilter creates a filter condition which looks for
 // meetings with the given committee id.

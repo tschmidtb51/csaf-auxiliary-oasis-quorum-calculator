@@ -43,6 +43,7 @@ func (td templateData) hasError() bool {
 var templateFuncs = template.FuncMap{
 	"Role":                 models.ParseRole,
 	"MemberStatus":         models.ParseMemberStatus,
+	"MeetingStatus":        models.ParseMeetingStatus,
 	"Shorten":              shorten,
 	"Args":                 args,
 	"CommitteeIDFilter":    models.CommitteeIDFilter,

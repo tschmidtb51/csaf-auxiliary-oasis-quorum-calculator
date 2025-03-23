@@ -13,6 +13,9 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- $chair     := Role "chair" }}
 {{- $member    := Role "member" }}
 {{- $user      := .User }}
+{{- $meetingOnHold    := MeetingStatus "onhold" }}
+{{- $meetingRunning   := MeetingStatus "running" }}
+{{- $meetingConcluded := MeetingStatus "concluded" }}
 {{range $user.Committees }}
 {{- $ms := $user.FindMembership .Name }}
 {{- if not ($ms.HasRole $chair) }}{{ continue }}{{ end }}
@@ -27,6 +30,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   <thead>
     <tr>
       <th>&nbsp;</th>
+      <th>Status</th>
       <th>Start</th>
       <th>Duration</th>
       <th>Description</th>
@@ -35,9 +39,18 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   <tbody>
   {{ range $meetings.Filter $filter }}
     <tr>
-      <td><input type="checkbox" name="meetings" value="{{ .ID }}"></td>
-      <td><a href="/meeting_edit?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}"
-             ><time datetime="{{ .StartTime.UTC.Format "2006-01-02T15:04:05Z07:00" }}">{{ .StartTime.UTC.Format "2006-01-02 15:04 MST" }}</time></a></td>
+      <td>
+        <input type="checkbox" name="meetings" value="{{ .ID }}"></td>
+      <td>
+        <a href="/meeting_status?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}">
+        {{- if eq .Status $meetingOnHold }}On hold
+        {{- else if .Status $meetingRunning }}<strong>Running</strong>
+        {{- else }}Concluded{{ end }}
+        </a>
+      </td>
+      <td>
+        <a href="/meeting_edit?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}"><time datetime="{{ .StartTime.UTC.Format "2006-01-02T15:04:05Z07:00" }}">{{ .StartTime.UTC.Format "2006-01-02 15:04 MST" }}</time></a>
+      </td>
       <td><time datetime="{{ .Duration | DatetimeHoursMinutes }}">{{ .Duration | HoursMinutes }}</time></td>
       <td>{{ if .Description }}{{ Shorten .Description }}{{ end }}</td>
     </tr>
