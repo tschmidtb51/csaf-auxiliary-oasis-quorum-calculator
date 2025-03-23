@@ -8,5 +8,80 @@ SPDX-FileCopyrightText: 2025 German Federal Office for Information Security (BSI
 Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 */ -}}
 {{ template "header" . }}
-{{- /* WIP */ -}}
+{{- $sessionID     := .Session.ID }}
+{{- $meetingID     := .Meeting.ID }}
+{{- $attendees     := .Attendees }}
+{{- $committeeID   := .Committee.ID }}
+{{- $committeeName := .Committee.Name }}
+{{- $onhold    := eq .Meeting.Status (MeetingStatus "onhold") }}
+{{- $running   := eq .Meeting.Status (MeetingStatus "running") }}
+{{- $concluded := eq .Meeting.Status (MeetingStatus "concluded") }}
+<p>
+<strong>Committee</strong>: {{ $committeeName }}<br>
+{{ with .Meeting }}
+ <strong>Meeting</strong>: <time datetime="{{ .StartTime.UTC.Format "2006-01-02T15:04:05Z07:00" }}">{{ .StartTime.UTC.Format "2006-01-02 15:04 MST" }}</time>/<time
+   datetime="{{ .Duration | DatetimeHoursMinutes }}">{{ .Duration | HoursMinutes }}</time><br>
+{{ if .Description }}<strong>Description</strong>: {{ .Description }}<br>{{ end }}
+{{ end }}
+<br>
+<strong>Status</strong>:
+{{ if $concluded }}Concluded{{ else }}
+{{- if $onhold }}[Waiting]
+{{- else }}[<a href="/meeting_status_store?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}&status=onhold">Pause</a>]
+{{- end }}
+{{ if $running }}[Running]
+{{- else }}[<a href="/meeting_status_store?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}&status=running">Run</a>]
+{{- end }}
+[<a href="/meeting_status_store?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}&status=concluded">Conclude</a>]
+{{ end }}<br>
+<strong>Quorum</strong>: {{ .Quorum.Number }} ({{ if not .Quorum.Reached }}not {{ end }}reached)<br>
+</p>
+{{ if .Members }}
+{{- $statusMember     := MemberStatus "member" }}
+{{- $statusVoting     := MemberStatus "voting" }}
+{{- $statusNoneVoting := MemberStatus "nonevoting" }}
+<fieldset>
+<legend>Attendees</legend>
+{{ if $running -}}
+<form action="/meeting_attend_store" method="post" accept-charset="UTF-8">
+{{- end }}
+<table>
+<thead>
+  <tr>
+    <th>Attending</th>
+    <th>User</th>
+    <th><abbr title="None voting member">M</abbr></th>
+    <th><abbr title="Voting member">V</abbr></th>
+    <th><abbr title="Persistent None Voter">P</abbr></th>
+  </tr>
+</thead>
+<tbody>
+{{ range .Members }}
+  <tr>
+    <td>{{ if $running }}<input type="checkbox"
+                                name="attend"
+                                value="{{ .Nickname }}"
+                                {{ if index $attendees .Nickname }}checked{{ end }}>
+        {{- else }}{{ if index $attendees .Nickname }}&#x2611;{{ end }}
+        {{- end -}}
+    </td>
+    <td>{{ .Nickname }}</td>
+    {{ $ms := .FindMembership $committeeName }}
+    <td>{{ if eq $ms.Status $statusMember }}&#x1F518;{{ end }}</td>
+    <td>{{ if eq $ms.Status $statusVoting }}&#x1F518;{{ end }}</td>
+    <td>{{ if eq $ms.Status $statusNoneVoting }}&#x1F518;{{ end }}</td>
+  </tr>
+{{ end }}
+</tbody>
+</table>
+{{ if $running }}
+<input type="hidden" name="SESSIONID" value="{{ $sessionID }}">
+<input type="hidden" name="meeting" value="{{ $meetingID }}">
+<input type="hidden" name="committee" value="{{ $committeeID }}">
+<input type="submit" value="Update">
+<input type="reset" value="Reset">
+</form>
+{{ end }}
+</fieldset>
+{{ end }}
 {{ template "footer" }}
