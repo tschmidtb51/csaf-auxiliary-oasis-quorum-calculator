@@ -9,8 +9,8 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 */ -}}
 {{ template "header" . }}
 {{ template "error" . }}
-<article>
-<p>Create new committee</p>
+<fieldset>
+<legend>Create new committee</legend>
 <form action="/committee_store?SESSIONID={{ .Session.ID }}" method="post" accept-charset="UTF-8">
   <label for="name">Name:</label>
   <input type="text"
@@ -24,5 +24,5 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   <input type="submit" value="Create">
   <input type="reset" value="Reset">
 </form>
-</article>
+</fieldset>
 {{ template "footer" }}
