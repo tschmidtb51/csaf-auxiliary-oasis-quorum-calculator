@@ -43,8 +43,8 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
         <input type="checkbox" name="meetings" value="{{ .ID }}"></td>
       <td>
         <a href="/meeting_status?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}">
-        {{- if eq .Status $meetingOnHold }}Waiting
-        {{- else if .Status $meetingRunning }}<strong>Running</strong>
+        {{- if      eq .Status $meetingOnHold }}Waiting
+        {{- else if eq .Status $meetingRunning }}<strong>Running</strong>
         {{- else }}Concluded{{ end -}}
         </a>
       </td>
