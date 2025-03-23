@@ -82,7 +82,7 @@ INSERT INTO meeting_status (id, name, description) VALUES
 CREATE TABLE meetings (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     committees_id INTEGER   NOT NULL REFERENCES committees(id) ON DELETE CASCADE,
-    status        INTEGER   NOT NULL DEFAULT 0, -- on hold
+    status        INTEGER   NOT NULL DEFAULT 0 REFERENCES meeting_status(id) ON DELETE CASCADE, -- on hold
     start_time    TIMESTAMP NOT NULL,
     stop_time     TIMESTAMP NOT NULL,
     description   VARCHAR,

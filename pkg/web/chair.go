@@ -9,6 +9,9 @@
 package web
 
 import (
+	"context"
+	"database/sql"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -287,4 +290,32 @@ func (c *Controller) meetingStatus(w http.ResponseWriter, r *http.Request) {
 		"Committee": committee,
 	}
 	check(w, r, c.tmpls.ExecuteTemplate(w, "meeting_status.tmpl", data))
+}
+
+func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) {
+	var (
+		meetingID, err1     = strconv.ParseInt(r.FormValue("meeting"), 10, 64)
+		committeID, err2    = strconv.ParseInt(r.FormValue("committee"), 10, 64)
+		meetingStatus, err3 = models.ParseMeetingStatus(r.FormValue("status"))
+	)
+	if !checkParam(w, err1, err2, err3) {
+		return
+	}
+	// This is only called if the update was successful.
+	onSuccess := func(_ context.Context, _ *sql.Tx) error {
+		if meetingStatus != models.MeetingConcluded {
+			return nil
+		}
+		// TODO: Update voting rights of committee members.
+		slog.Info("TODO: Need to update the voting rights")
+		return nil
+	}
+	if !check(w, r, models.UpdateMeetingStatus(
+		r.Context(), c.db,
+		meetingID, committeID, meetingStatus,
+		onSuccess,
+	)) {
+		return
+	}
+	c.meetingStatus(w, r)
 }

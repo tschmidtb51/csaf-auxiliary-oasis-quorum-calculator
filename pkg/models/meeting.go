@@ -269,3 +269,40 @@ func (m *Meeting) Attendees(ctx context.Context, db *database.Database) (map[str
 	}
 	return attendees, nil
 }
+
+// UpdateMeetingStatus updates the status of the meeting identified by its id.
+func UpdateMeetingStatus(
+	ctx context.Context, db *database.Database,
+	meetingID, committeeID int64,
+	meetingStatus MeetingStatus,
+	onSuccess func(context.Context, *sql.Tx) error,
+) error {
+	tx, err := db.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	const updateSQL = `UPDATE meetings SET status = ? ` +
+		`WHERE id = ? AND committees_id = ? ` +
+		`AND status != 2` // Don't update concluded meetings.
+
+	result, err := db.DB.ExecContext(ctx, updateSQL,
+		meetingStatus,
+		meetingID,
+		committeeID,
+	)
+	if err != nil {
+		return fmt.Errorf("updating meeting status failed: %w", err)
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("cannot determine meeting status change: %w", err)
+	}
+	if n == 1 {
+		if err := onSuccess(ctx, tx); err != nil {
+			return nil
+		}
+	}
+	return tx.Commit()
+}
