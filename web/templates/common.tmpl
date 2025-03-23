@@ -164,18 +164,22 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- end -}}
 
 {{- define "meeting" -}}
+{{ $concluded := eq .Status (MeetingStatus "concluded") }}
 <label for="start_time">Start time:</label>
 <input type="datetime-local"
        name="start_time"
        id="start_time"
        value="{{ if not .StartTime.IsZero }}{{ .StartTime.UTC.Format "2006-01-02T15:04" }}{{ end }}"
+       {{ if $concluded }}disabled{{ end }}
        required><br>
 <label for="Duration">Duration:</label>
 <input type="input"
        name="duration"
        id="duration"
        value="{{ if .Duration }}{{ HoursMinutes .Duration }}{{ end }}"
+       {{ if $concluded }}disabled{{ end }}
        required><br>
 <label for="description">Description:</label>
-<textarea name="description">{{ if .Description }}{{ .Description }}{{ end }}</textarea>
+<textarea name="description"
+       {{ if $concluded }}disabled{{ end }}>{{ if .Description }}{{ .Description }}{{ end }}</textarea>
 {{- end -}}

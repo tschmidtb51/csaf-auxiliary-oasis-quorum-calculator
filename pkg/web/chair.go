@@ -189,7 +189,7 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 	if !check(w, r, err) {
 		return
 	}
-	if meeting == nil {
+	if meeting == nil || meeting.Status == models.MeetingConcluded {
 		c.chair(w, r)
 		return
 	}

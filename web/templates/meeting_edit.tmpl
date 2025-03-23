@@ -9,14 +9,20 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 */ -}}
 {{ template "header" . }}
 {{ template "error" . }}
-<article>
+<fieldset>
+{{ $concluded := eq .Meeting.Status (MeetingStatus "concluded") }}
+<legend>{{ if not $concluded }}Edit meeting{{ else }}Concluded meeting{{ end }}</legend>
+{{ if not $concluded }}
 <form action="/meeting_edit_store" method="post" accept-charset="UTF-8">
+{{ end }}
   {{ template "meeting" .Meeting }}
+{{ if not $concluded }}
   <input type="hidden" name="SESSIONID" value="{{ .Session.ID }}">
   <input type="hidden" name="meeting" value="{{ .Meeting.ID }}">
   <input type="hidden" name="committee" value="{{ .Committee }}">
   <input type="submit" value="Update">
   <input type="reset" value="Reset">
+{{ end }}
 </form>
-</article>
+</fieldset>
 {{ template "footer" }}
