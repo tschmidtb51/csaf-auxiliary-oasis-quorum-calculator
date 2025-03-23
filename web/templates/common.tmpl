@@ -58,22 +58,35 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ end }}
 {{- end -}}
 
+{{ define "committees_table_header" -}}
+<thead>
+<th>Committee</th>
+<th>Chair</th>
+<th>Member</th>
+<th><abbr title="None voting member">M</abbr></th>
+<th><abbr title="Voting member">V</abbr></th>
+<th><abbr title="Persistent None Voter">P</abbr></th>
+</thead>
+{{- end -}}
+
 {{ define "committees" -}}
 {{ if .Memberships }}
 {{ $member := Role "member" }}
 {{ $chair  := Role "chair" }}
+{{ $statusMember     := MemberStatus "member" }}
+{{ $statusVoting     := MemberStatus "voting" }}
+{{ $statusNoneVoting := MemberStatus "nonevoting" }}
 <table>
-  <thead>
-    <th>Committee</th>
-    <th>Member</th>
-    <th>Chair</th>
-  </thead>
+  {{ template "committees_table_header" }}
   <tbody>
   {{ range .Memberships }}
   <tr>
     <td>{{ .Committee.Name }}</td>
-    <td>{{ if .HasRole $member  }}&#x2611;{{ else }}&#x2610;{{ end }}</td>
-    <td>{{ if .HasRole $chair   }}&#x2611;{{ else }}&#x2610;{{ end }}</td>
+    <td>{{ if .HasRole $chair   }}&#x2611;{{ end }}</td>
+    <td>{{ if .HasRole $member  }}&#x2611;{{ end }}</td>
+    <td>{{ if and (.HasRole $member) (eq .Status $statusMember) }}&#x1F518;{{ end }}</td>
+    <td>{{ if and (.HasRole $member) (eq .Status $statusVoting) }}&#x1F518;{{ end }}</td>
+    <td>{{ if and (.HasRole $member) (eq .Status $statusNoneVoting) }}&#x1F518;{{ end }}</td>
   <tr>
   {{ end }}
   </tbody>
@@ -91,14 +104,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ $statusVoting     := MemberStatus "voting" }}
 {{ $statusNoneVoting := MemberStatus "nonevoting" }}
 <table>
-  <thead>
-    <th>Committee</th>
-    <th>Chair</th>
-    <th>Member</th>
-    <th><abbr title="None voting member">M</abbr></th>
-    <th><abbr title="Voting member">V</abbr></th>
-    <th><abbr title="Persistent None Voter">P</abbr></th>
-  </thead>
+  {{ template "committees_table_header" }}
   <tbody>
   {{ range $committees }}
   <tr>
