@@ -1,0 +1,55 @@
+{{- /*
+This file is Free Software under the Apache-2.0 License
+without warranty, see README.md and LICENSE for details.
+
+SPDX-License-Identifier: Apache-2.0
+
+SPDX-FileCopyrightText: 2025 German Federal Office for Information Security (BSI) <https://www.bsi.bund.de>
+Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
+*/ -}}
+{{ template "header" . }}
+{{ $password  := .Password }}
+{{ $sessionID := .Session.ID }}
+<fieldset>
+  <legend>User</legend>
+  <p>User successfully created.</p>
+  <table>
+    {{ with .NewUser }}
+    <tbody>
+      <tr>
+        <td>User name</td>
+        <td><a href="/user_edit?SESSIONID={{ $sessionID }}&nickname={{ .Nickname }}">{{ .Nickname }}</a></td>
+      </tr>
+      {{ if .Firstname }}
+      <tr>
+        <td>First name</td>
+        <td>{{ .Firstname }}</td>
+      </tr>
+      {{ end }}
+      {{ if .Lastname }}
+      <tr>
+        <td>Last name</td>
+        <td>{{ .Lastname }}</td>
+      </tr>
+      {{ end }}
+      <tr>
+        <td>Password</td>
+        <td><strong><tt>{{ $password }}</tt></strong></td>
+      </tr>
+    </tbody>
+    {{ end }}
+  </table>
+</fieldset>
+{{- if and (not .NewUser.IsAdmin) .Committees }}
+<fieldset>
+  <legend>Committees</legend>
+  <form action="/user_committees_store" method="post" accept-charset="UTF-8">
+  {{ template "user_committees" Args "Committees" .Committees "User" .NewUser }}
+    <input type="hidden" name="nickname" value="{{ .NewUser.Nickname }}">
+    <input type="hidden" name="SESSIONID" value="{{ .Session.ID }}">
+    <input type="submit" value="Save">
+    <input type="reset" value="Reset">
+  </form>
+</fieldset>
+{{ end -}}
+{{ template "footer" }}

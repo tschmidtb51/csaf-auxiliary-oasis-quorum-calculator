@@ -1,0 +1,59 @@
+{{- /*
+This file is Free Software under the Apache-2.0 License
+without warranty, see README.md and LICENSE for details.
+
+SPDX-License-Identifier: Apache-2.0
+
+SPDX-FileCopyrightText: 2025 German Federal Office for Information Security (BSI) <https://www.bsi.bund.de>
+Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
+*/ -}}
+{{ template "header" . }}
+{{- $sessionID := .Session.ID }}
+{{- $meetings  := .Meetings }}
+{{- $member    := Role "member" }}
+{{- $user      := .User }}
+{{- $attended  := .Attended }}
+{{- $meetingOnHold    := MeetingStatus "onhold" }}
+{{- $meetingRunning   := MeetingStatus "running" }}
+{{range $user.Committees }}
+{{- $ms := $user.FindMembership .Name }}
+{{- if not ($ms.HasRole $member) }}{{ continue }}{{ end }}
+{{- $committeeID := .ID }}
+<fieldset>
+  <legend>Committee <strong>{{ .Name }}</strong></legend>
+  {{ $filter := CommitteeIDFilter .ID }}
+  {{ if $meetings.Contains $filter }}
+  <table>
+  <thead>
+    <tr>
+      <th>Status</th>
+      <th>Start</th>
+      <th>Duration</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+  {{ range $meetings.Filter $filter }}
+    <tr>
+      <td>
+        {{ $att := index $attended .ID }}
+        {{- if      eq .Status $meetingOnHold }}Waiting{{ if $att }} (Attending}}{{ end }}
+        {{- else if eq .Status $meetingRunning }}<strong>Running</strong>:<br>
+            {{ if $att }}<a href="/member_attend?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}&attend=false"><mark>Click&nbsp;to&nbsp;skip!</mark></a>
+            {{- else }}<a href="/member_attend?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}&attend=true"><mark>Click&nbsp;to&nbsp;join!</mark></a>
+            {{- end }}
+        {{- else }}Concluded{{ if $att }} (Attended){{ end }}{{ end -}}
+      </td>
+      <td>
+        <time datetime="{{ .StartTime.UTC.Format "2006-01-02T15:04:05Z07:00" }}">{{ .StartTime.UTC.Format "2006-01-02 15:04 MST" }}</time>
+      </td>
+      <td><time datetime="{{ .Duration | DatetimeHoursMinutes }}">{{ .Duration | HoursMinutes }}</time></td>
+      <td>{{ if .Description }}{{ Shorten .Description }}{{ end }}</td>
+    </tr>
+  {{ end }}
+  </tbody>
+  </table>
+  {{ end }}
+</fieldset>
+{{ end }}
+{{ template "footer" }}
