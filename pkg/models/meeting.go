@@ -184,17 +184,11 @@ func LoadMeetings(
 			return nil, fmt.Errorf("scanning meetings failed: %w", err)
 		}
 	}
-	slices.SortStableFunc(meetings, func(a, b *Meeting) int {
-		return a.StartTime.Compare(b.StartTime)
-	})
-	slices.SortStableFunc(meetings, func(a, b *Meeting) int {
-		if a.Status == b.Status {
-			return 0
-		}
-		if a.Status == MeetingRunning {
+	slices.SortFunc(meetings, func(a, b *Meeting) int {
+		if a.Status == MeetingRunning && a.Status != b.Status {
 			return -1
 		}
-		return 1
+		return a.StartTime.Compare(b.StartTime)
 	})
 	return meetings, nil
 }
