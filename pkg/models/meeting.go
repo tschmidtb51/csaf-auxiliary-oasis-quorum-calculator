@@ -50,6 +50,14 @@ type Quorum struct {
 	Reached bool
 }
 
+// MemberCount is the individual count of the roles.
+type MemberCount struct {
+	Total     int
+	Member    int
+	Voting    int
+	NonVoting int
+}
+
 // Meetings is a slice of meetings.
 type Meetings []*Meeting
 

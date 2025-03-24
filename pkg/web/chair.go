@@ -264,14 +264,22 @@ func (c *Controller) meetingStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var numVoters, attendingVoters int
+	var numVoters, attendingVoters, numNonVoters, numMembers int
 	for _, member := range members {
 		if ms := member.FindMembership(committee.Name); ms != nil &&
-			ms.HasRole(models.MemberRole) &&
-			ms.Status == models.Voting {
-			numVoters++
-			if attendees[member.Nickname] {
-				attendingVoters++
+			ms.HasRole(models.MemberRole) {
+			switch ms.Status {
+			case models.Voting:
+				{
+					numVoters++
+					if attendees[member.Nickname] {
+						attendingVoters++
+					}
+				}
+			case models.NoneVoting:
+				numNonVoters++
+			case models.Member:
+				numMembers++
 			}
 		}
 	}
@@ -281,6 +289,13 @@ func (c *Controller) meetingStatus(w http.ResponseWriter, r *http.Request) {
 		Reached: attendingVoters >= (1 + numVoters/2),
 	}
 
+	count := models.MemberCount{
+		Total:     len(members),
+		Member:    numMembers,
+		Voting:    numVoters,
+		NonVoting: numNonVoters,
+	}
+
 	data := templateData{
 		"Session":   auth.SessionFromContext(ctx),
 		"User":      auth.UserFromContext(ctx),
@@ -288,6 +303,7 @@ func (c *Controller) meetingStatus(w http.ResponseWriter, r *http.Request) {
 		"Members":   members,
 		"Attendees": attendees,
 		"Quorum":    &quorum,
+		"Count":     &count,
 		"Committee": committee,
 	}
 	check(w, r, c.tmpls.ExecuteTemplate(w, "meeting_status.tmpl", data))

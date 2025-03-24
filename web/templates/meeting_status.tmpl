@@ -54,10 +54,10 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 <thead>
   <tr>
     <th><abbr title="Attending">Att</abbr></th>
-    <th>User</th>
-    <th><abbr title="None voting member">M</abbr></th>
-    <th><abbr title="Voting member">V</abbr></th>
-    <th><abbr title="Persistent None Voter">P</abbr></th>
+    <th>User ({{ .Count.Total }})</th>
+    <th><abbr title="None voting member">M ({{ .Count.Member }})</abbr></th>
+    <th><abbr title="Voting member">V ({{ .Count.Voting }})</abbr></th>
+    <th><abbr title="Persistent None Voter">P ({{ .Count.NonVoting }})</abbr></th>
   </tr>
 </thead>
 <tbody>
