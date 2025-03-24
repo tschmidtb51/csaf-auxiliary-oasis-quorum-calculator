@@ -20,7 +20,6 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   <header>
     {{ if .Session }}
     <nav>
-      <a href="/?SESSIONID={{ .Session.ID }}">home</a>
       {{ if .User }}
         {{ if .User.IsAdmin }}
           <a href="/users?SESSIONID={{ .Session.ID }}">users</a>

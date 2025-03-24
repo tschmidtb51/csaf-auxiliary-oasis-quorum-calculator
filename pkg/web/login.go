@@ -10,6 +10,7 @@ package web
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/models"
@@ -54,15 +55,12 @@ func (c *Controller) login(w http.ResponseWriter, r *http.Request) {
 		c.authFailed(w, r, nickname, "Login failed")
 		return
 	}
-	user, err := models.LoadUser(r.Context(), c.db, nickname)
+	_, err = models.LoadUser(r.Context(), c.db, nickname)
 	if !check(w, r, err) {
 		return
 	}
-	data := templateData{
-		"Session": session,
-		"User":    user,
-	}
-	check(w, r, c.tmpls.ExecuteTemplate(w, "index.tmpl", data))
+
+	http.Redirect(w, r, "/?SESSIONID="+url.QueryEscape(session.ID()), http.StatusFound)
 }
 
 func (c *Controller) logout(_ http.ResponseWriter, r *http.Request) {

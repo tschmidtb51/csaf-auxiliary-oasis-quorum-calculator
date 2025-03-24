@@ -13,7 +13,9 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"path/filepath"
+	"slices"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
@@ -72,13 +74,31 @@ func NewController(
 }
 
 func (c *Controller) home(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement me!
 	ctx := r.Context()
-	data := templateData{
-		"Session": auth.SessionFromContext(ctx),
-		"User":    auth.UserFromContext(ctx),
+	user := auth.UserFromContext(ctx)
+	session := auth.SessionFromContext(ctx)
+	if user == nil || session == nil {
+		http.Redirect(w, r, "/auth", http.StatusFound)
+		return
 	}
-	check(w, r, c.tmpls.ExecuteTemplate(w, "index.tmpl", data))
+
+	var isMember, isChair bool
+	for _, i := range user.Memberships {
+		isChair = isChair || slices.Contains(i.Roles, models.ChairRole)
+		isMember = isMember || slices.Contains(i.Roles, models.MemberRole)
+	}
+
+	redirectURI := "/user"
+	switch {
+	case user.IsAdmin:
+		redirectURI = "/users"
+	case isChair:
+		redirectURI = "/chair"
+	case isMember:
+		redirectURI = "/member"
+	}
+
+	http.Redirect(w, r, redirectURI+"?SESSIONID="+url.QueryEscape(session.ID()), http.StatusFound)
 }
 
 // Bind return a http handler to be used in a web server.
