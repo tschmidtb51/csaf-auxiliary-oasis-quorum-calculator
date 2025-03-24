@@ -118,14 +118,31 @@ func (u *User) IsMember(committeeName string) bool {
 	return u.FindMembership(committeeName) != nil
 }
 
-// FindMembership looks up a membership of a user by name.
-func (u *User) FindMembership(committeeName string) *Membership {
-	if idx := slices.IndexFunc(u.Memberships, func(m *Membership) bool {
-		return m.Committee.Name == committeeName
-	}); idx != -1 {
+// MembershipByName matches a membership by the committee name.
+func MembershipByName(name string) func(*Membership) bool {
+	return func(m *Membership) bool {
+		return m.Committee.Name == name
+	}
+}
+
+// MembershipByID matches a membership by the committee id.
+func MembershipByID(id int64) func(*Membership) bool {
+	return func(m *Membership) bool {
+		return m.Committee.ID == id
+	}
+}
+
+// FindMembershipCriterion finds a membership by a given criterion.
+func (u *User) FindMembershipCriterion(crit func(*Membership) bool) *Membership {
+	if idx := slices.IndexFunc(u.Memberships, crit); idx != -1 {
 		return u.Memberships[idx]
 	}
 	return nil
+}
+
+// FindMembership looks up a membership of a user by name.
+func (u *User) FindMembership(committeeName string) *Membership {
+	return u.FindMembershipCriterion(MembershipByName(committeeName))
 }
 
 // HasRole checks if a membership contains a certain role.

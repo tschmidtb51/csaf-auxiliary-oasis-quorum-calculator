@@ -306,3 +306,46 @@ func UpdateMeetingStatus(
 	}
 	return tx.Commit()
 }
+
+// UpdateAttendees sets the attendees of a meeting to a given list.
+func UpdateAttendees(
+	ctx context.Context, db *database.Database,
+	meetingID, committeeID int64,
+	seq iter.Seq2[string, bool],
+) error {
+	tx, err := db.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	// As a security measure check if meetingID and committeeID match.
+	const existsSQL = `SELECT EXISTS(SELECT 1 FROM committees c JOIN meetings m ` +
+		`ON c.id = m.committees_id ` +
+		`WHERE m.id = ? AND c.id = ?)`
+	var exists bool
+	if err := tx.QueryRowContext(ctx, existsSQL, meetingID, committeeID).Scan(&exists); err != nil {
+		return fmt.Errorf("checking committee failed: %w", err)
+	}
+	if !exists {
+		return nil
+	}
+	// Delete all attendees.
+	const deleteAllSQL = `DELETE FROM attendees WHERE meetings_id = ?`
+	if _, err := tx.ExecContext(ctx, deleteAllSQL, meetingID); err != nil {
+		return fmt.Errorf("deleting attendees failed: %w", err)
+	}
+	// Insert back the given.
+	const insertAttendeeSQL = `INSERT INTO attendees (meetings_id, nickname, voting_allowed) ` +
+		`VALUES (?, ?, ?)`
+	stmt, err := tx.PrepareContext(ctx, insertAttendeeSQL)
+	if err != nil {
+		return fmt.Errorf("preparing insert attendee failed: %w", err)
+	}
+	defer stmt.Close()
+	for nickname, voting := range seq {
+		if _, err := stmt.ExecContext(ctx, meetingID, nickname, voting); err != nil {
+			return fmt.Errorf("inserting attendee failed: %w", err)
+		}
+	}
+	return tx.Commit()
+}

@@ -13,6 +13,7 @@ import (
 	"database/sql"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -315,6 +316,45 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 		meetingID, committeID, meetingStatus,
 		onSuccess,
 	)) {
+		return
+	}
+	c.meetingStatus(w, r)
+}
+
+func (c *Controller) meetingAttendStore(w http.ResponseWriter, r *http.Request) {
+	var (
+		meetingID, err1   = strconv.ParseInt(r.FormValue("meeting"), 10, 64)
+		committeeID, err2 = strconv.ParseInt(r.FormValue("committee"), 10, 64)
+		ctx               = r.Context()
+	)
+	if !checkParam(w, err1, err2) {
+		return
+	}
+	users, err := models.LoadCommitteeUsers(ctx, c.db, committeeID)
+	if !check(w, r, err) {
+		return
+	}
+	seq := func(yield func(string, bool) bool) {
+		crit := models.MembershipByID(committeeID)
+		for _, nickname := range r.Form["attend"] {
+			// Check if the given nickname is really in the members of this committee.
+			idx := slices.IndexFunc(users, func(u *models.User) bool {
+				return u.Nickname == nickname
+			})
+			if idx == -1 {
+				continue
+			}
+			if ms := users[idx].FindMembershipCriterion(crit); ms != nil {
+				// Remember if voting is allowed at the moment.
+				// This may change in the future.
+				voting := ms.Status == models.Voting && ms.HasRole(models.MemberRole)
+				if !yield(nickname, voting) {
+					return
+				}
+			}
+		}
+	}
+	if !check(w, r, models.UpdateAttendees(ctx, c.db, meetingID, committeeID, seq)) {
 		return
 	}
 	c.meetingStatus(w, r)

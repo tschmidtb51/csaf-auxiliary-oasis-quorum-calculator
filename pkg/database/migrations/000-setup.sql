@@ -91,8 +91,9 @@ CREATE TABLE meetings (
 );
 
 CREATE TABLE attendees (
-    meetings_id INTEGER NOT NULL REFERENCES meetings(id)    ON DELETE CASCADE,
-    nickname    VARCHAR NOT NULL REFERENCES users(nickname) ON DELETE CASCADE,
+    meetings_id    INTEGER NOT NULL REFERENCES meetings(id)    ON DELETE CASCADE,
+    nickname       VARCHAR NOT NULL REFERENCES users(nickname) ON DELETE CASCADE,
+    voting_allowed BOOLEAN NOT NULL DEFAULT FALSE,
     UNIQUE(meetings_id, nickname)
 );
 

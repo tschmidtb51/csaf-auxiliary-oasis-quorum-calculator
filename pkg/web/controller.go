@@ -121,6 +121,7 @@ func (c *Controller) Bind() http.Handler {
 		{"/meeting_edit_store", mw.CommitteeRoles(c.meetingEditStore, models.ChairRole)},
 		{"/meeting_status", mw.CommitteeRoles(c.meetingStatus, models.ChairRole)},
 		{"/meeting_status_store", mw.CommitteeRoles(c.meetingStatusStore, models.ChairRole)},
+		{"/meeting_attend_store", mw.CommitteeRoles(c.meetingAttendStore, models.ChairRole)},
 	} {
 		router.HandleFunc(route.pattern, route.handler)
 	}
