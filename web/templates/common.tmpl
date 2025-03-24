@@ -18,7 +18,6 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 </head>
 <body>
   <header>
-    <h1>OQC - Oasis Quorum Calculator</h1>
     {{ if .Session }}
     <nav>
       <a href="/?SESSIONID={{ .Session.ID }}">home</a>
@@ -40,6 +39,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
       <a href="/logout?SESSIONID={{ .Session.ID }}">Logout</a>
     </nav>
     {{ end }}
+    <h4>OQC - Oasis Quorum Calculator</h4>
   </header>
   <main>
 {{ end -}}

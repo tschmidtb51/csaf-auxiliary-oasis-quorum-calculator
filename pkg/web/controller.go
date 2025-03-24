@@ -132,6 +132,5 @@ func (c *Controller) Bind() http.Handler {
 	static := http.FileServer(http.Dir(c.cfg.Web.Root))
 	router.Handle("/static/", static)
 
-	// TODO: Implement me!
 	return router
 }
