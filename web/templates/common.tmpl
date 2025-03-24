@@ -26,8 +26,8 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <nav>
       {{ if .User }}
         {{ if .User.IsAdmin }}
-          <a href="/users?SESSIONID={{ .Session.ID }}">users</a>
-          <a href="/committees?SESSIONID={{ .Session.ID }}">committees</a>
+          <a href="/users?SESSIONID={{ .Session.ID }}">users &#x1F465;</a>
+          <a href="/committees?SESSIONID={{ .Session.ID }}">committees &#x1F3DB;</a>
         {{ end }}
         {{ $chair  := .User.CountMemberships (Role "chair") }}
         {{ $member := .User.CountMemberships (Role "member") }}
