@@ -13,6 +13,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/mattn/go-sqlite3"
 	"iter"
 	"slices"
 	"strings"
@@ -363,6 +364,12 @@ func (u *User) StoreNew(ctx context.Context, db *database.Database, password str
 	if _, err := tx.ExecContext(
 		ctx, insertSQL,
 		u.Nickname, u.Firstname, u.Lastname, u.IsAdmin, encoded); err != nil {
+		var sqliteErr sqlite3.Error
+		if errors.As(err, &sqliteErr) {
+			if errors.Is(sqliteErr.ExtendedCode, sqlite3.ErrConstraintPrimaryKey) {
+				return false, nil
+			}
+		}
 		return false, fmt.Errorf("inserting user failed: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
