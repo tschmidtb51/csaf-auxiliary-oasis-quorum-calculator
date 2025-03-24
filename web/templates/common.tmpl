@@ -29,14 +29,14 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
         {{ $chair  := .User.CountMemberships (Role "chair") }}
         {{ $member := .User.CountMemberships (Role "member") }}
         {{ if $chair }}
-          <a href="/chair?SESSIONID={{ .Session.ID }}">chair ({{ $chair }})</a>
+          <a href="/chair?SESSIONID={{ .Session.ID }}">chair &#x1F9FE; ({{ $chair }})</a>
         {{ end }}
         {{ if $member }}
-          <a href="/member?SESSIONID={{ .Session.ID }}">member ({{ $member }})</a>
+          <a href="/member?SESSIONID={{ .Session.ID }}">member &#x1F465; ({{ $member }})</a>
         {{ end }}
-        <a href="/user?SESSIONID={{ .Session.ID }}">me (<strong>{{ .User.Nickname }}</strong>)</a>
+        <a href="/user?SESSIONID={{ .Session.ID }}">me &#x1F464; (<strong>{{ .User.Nickname }}</strong>)</a>
       {{ end }}
-      <a href="/logout?SESSIONID={{ .Session.ID }}">Logout</a>
+      <a href="/logout?SESSIONID={{ .Session.ID }}">Logout &#x1F6AA;</a>
     </nav>
     {{ end }}
     <h4>OQC - OASIS Quorum Calculator</h4>
