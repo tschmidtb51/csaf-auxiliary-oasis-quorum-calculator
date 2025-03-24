@@ -461,6 +461,15 @@ func LoadCommitteeUsers(
 		return nil, err
 	}
 	defer tx.Rollback()
+	return LoadCommitteeUsersTx(ctx, tx, committeeID)
+}
+
+// LoadCommitteeUsersTx loads all users of a committee.
+func LoadCommitteeUsersTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	committeeID int64,
+) ([]*User, error) {
 	// Load nicknames.
 	const committeeUsersSQL = `SELECT distinct(nickname) FROM committee_roles ` +
 		`WHERE committees_id = ? ` +

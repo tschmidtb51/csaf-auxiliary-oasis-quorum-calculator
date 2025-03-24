@@ -404,3 +404,56 @@ func AttendedMeetings(
 	}
 	return meetings, nil
 }
+
+// MeetingAttendeesTx loads the attendees of a meeting
+// and their voting rights.
+func MeetingAttendeesTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	meetingID int64,
+) (map[string]bool, error) {
+	const attendeesSQL = `SELECT nickname, voting_allowed FROM attendees ` +
+		`WHERE meetings_id = ?`
+	rows, err := tx.QueryContext(ctx, attendeesSQL, meetingID)
+	if err != nil {
+		return nil, fmt.Errorf("loading meeting attendees failed: %w", err)
+	}
+	defer rows.Close()
+	attendees := map[string]bool{}
+	for rows.Next() {
+		var (
+			nickname string
+			voting   bool
+		)
+		if err := rows.Scan(&nickname, &voting); err != nil {
+			return nil, fmt.Errorf("scanning meeting attendees failed: %w", err)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("lading meeting attendees failed: %w", err)
+	}
+	return attendees, nil
+}
+
+// PreviousMeetingAttendeesTx loads the attendees and their
+// voting rights of the meeting before the given meeting.
+func PreviousMeetingAttendeesTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	meetingID int64,
+) (map[string]bool, error) {
+	const lastSQL = `SELECT m2.id FROM meetings m1, meetings m2 ` +
+		`WHERE m1.id = ? ` +
+		`AND m1.committees_id = m2.committees_id ` +
+		`AND m2.status = 2 ` + // MeetingConcluded
+		`AND unixepoch(m2.start_time) < unixepoch(m1.start_time) ` +
+		`ORDER by unixepoch(m2.start_time) DESC LIMIT 1`
+	var lastID int64
+	switch err := tx.QueryRowContext(ctx, lastSQL, meetingID).Scan(&lastID); {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil, nil
+	case err != nil:
+		return nil, fmt.Errorf("find last meeting failed: %w", err)
+	}
+	return MeetingAttendeesTx(ctx, tx, lastID)
+}

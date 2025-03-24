@@ -312,24 +312,62 @@ func (c *Controller) meetingStatus(w http.ResponseWriter, r *http.Request) {
 func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) {
 	var (
 		meetingID, err1     = strconv.ParseInt(r.FormValue("meeting"), 10, 64)
-		committeID, err2    = strconv.ParseInt(r.FormValue("committee"), 10, 64)
+		committeeID, err2   = strconv.ParseInt(r.FormValue("committee"), 10, 64)
 		meetingStatus, err3 = models.ParseMeetingStatus(r.FormValue("status"))
+		ctx                 = r.Context()
 	)
 	if !checkParam(w, err1, err2, err3) {
 		return
 	}
+	// In case we
+	if meetingStatus == models.MeetingConcluded {
+		var err error
+		if !check(w, r, err) {
+			return
+		}
+	}
 	// This is only called if the update was successful.
-	onSuccess := func(_ context.Context, _ *sql.Tx) error {
+	onSuccess := func(ctx context.Context, tx *sql.Tx) error {
 		if meetingStatus != models.MeetingConcluded {
 			return nil
+		}
+		prevAttendees, err := models.PreviousMeetingAttendeesTx(ctx, tx, meetingID)
+		if err != nil {
+			return err
+		}
+		if prevAttendees == nil { // There was no last meeting.
+			return nil
+		}
+		currAttendees, err := models.MeetingAttendeesTx(ctx, tx, meetingID)
+		if err != nil {
+			return err
+		}
+		users, err := models.LoadCommitteeUsersTx(ctx, tx, committeeID)
+		if err != nil {
+			return err
+		}
+		crit := models.MembershipByID(committeeID)
+		for _, user := range users {
+			ms := user.FindMembershipCriterion(crit)
+			if ms == nil || ms.Status == models.NoneVoting {
+				continue
+			}
+			votingCurr, wasInCurr := currAttendees[user.Nickname]
+			votingPrev, wasInPrev := prevAttendees[user.Nickname]
+
+			_, _ = votingCurr, wasInCurr
+			_, _ = votingPrev, wasInPrev
+
+			// TODO: To be continued.
+
 		}
 		// TODO: Update voting rights of committee members.
 		slog.Info("TODO: Need to update the voting rights")
 		return nil
 	}
 	if !check(w, r, models.UpdateMeetingStatus(
-		r.Context(), c.db,
-		meetingID, committeID, meetingStatus,
+		ctx, c.db,
+		meetingID, committeeID, meetingStatus,
 		onSuccess,
 	)) {
 		return
