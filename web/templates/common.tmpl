@@ -82,11 +82,11 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   {{ range .Memberships }}
   <tr>
     <td>{{ .Committee.Name }}</td>
-    <td>{{ if .HasRole $chair   }}&#x2611;{{ end }}</td>
-    <td>{{ if .HasRole $member  }}&#x2611;{{ end }}</td>
-    <td>{{ if and (.HasRole $member) (eq .Status $statusMember) }}&#x1F518;{{ end }}</td>
-    <td>{{ if and (.HasRole $member) (eq .Status $statusVoting) }}&#x1F518;{{ end }}</td>
-    <td>{{ if and (.HasRole $member) (eq .Status $statusNoneVoting) }}&#x1F518;{{ end }}</td>
+    <td>{{ if .HasRole $chair   }}&check;{{ end }}</td>
+    <td>{{ if .HasRole $member  }}&check;{{ end }}</td>
+    <td>{{ if and (.HasRole $member) (eq .Status $statusMember) }}&check;{{ end }}</td>
+    <td>{{ if and (.HasRole $member) (eq .Status $statusVoting) }}&check;{{ end }}</td>
+    <td>{{ if and (.HasRole $member) (eq .Status $statusNoneVoting) }}&check;{{ end }}</td>
   <tr>
   {{ end }}
   </tbody>

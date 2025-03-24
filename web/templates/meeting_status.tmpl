@@ -67,14 +67,14 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
                                 name="attend"
                                 value="{{ .Nickname }}"
                                 {{ if index $attendees .Nickname }}checked{{ end }}>
-        {{- else }}{{ if index $attendees .Nickname }}&#x2611;{{ end }}
+        {{- else }}{{ if index $attendees .Nickname }}&check;{{ end }}
         {{- end -}}
     </td>
     <td>{{ .Nickname }}</td>
     {{ $ms := .FindMembership $committeeName }}
-    <td>{{ if eq $ms.Status $statusMember }}&#x1F518;{{ end }}</td>
-    <td>{{ if eq $ms.Status $statusVoting }}&#x1F518;{{ end }}</td>
-    <td>{{ if eq $ms.Status $statusNoneVoting }}&#x1F518;{{ end }}</td>
+    <td>{{ if eq $ms.Status $statusMember }}&check;{{ end }}</td>
+    <td>{{ if eq $ms.Status $statusVoting }}&check;{{ end }}</td>
+    <td>{{ if eq $ms.Status $statusNoneVoting }}&check;{{ end }}</td>
   </tr>
 {{ end }}
 </tbody>

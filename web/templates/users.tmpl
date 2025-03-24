@@ -35,7 +35,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
       <td><a href="/user_edit?SESSIONID={{ $sessionID }}&nickname={{ .Nickname }}">{{ .Nickname }}</a></td>
       <td>{{ if .Firstname }}{{ .Firstname }}{{ end }}</td>
       <td>{{ if .Lastname }}{{ .Lastname }}{{ end }}</td>
-      <td>{{ if .IsAdmin }}&#x2713;{{ else }}{{ end }}</td>
+      <td>{{ if .IsAdmin }}&check;{{ else }}{{ end }}</td>
     </tr>
     {{ end }}{{ end }}
   </tbody>
