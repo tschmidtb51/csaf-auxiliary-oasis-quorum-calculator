@@ -330,6 +330,14 @@ func (c *Controller) meetingAttendStore(w http.ResponseWriter, r *http.Request) 
 	if !checkParam(w, err1, err2) {
 		return
 	}
+	meeting, err := models.LoadMeeting(ctx, c.db, meetingID, committeeID)
+	if !check(w, r, err) {
+		return
+	}
+	if meeting == nil || meeting.Status != models.MeetingRunning {
+		c.meetingStatus(w, r)
+		return
+	}
 	users, err := models.LoadCommitteeUsers(ctx, c.db, committeeID)
 	if !check(w, r, err) {
 		return
@@ -354,7 +362,7 @@ func (c *Controller) meetingAttendStore(w http.ResponseWriter, r *http.Request) 
 			}
 		}
 	}
-	if !check(w, r, models.UpdateAttendees(ctx, c.db, meetingID, committeeID, seq)) {
+	if !check(w, r, models.UpdateAttendees(ctx, c.db, meetingID, seq)) {
 		return
 	}
 	c.meetingStatus(w, r)

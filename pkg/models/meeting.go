@@ -310,7 +310,7 @@ func UpdateMeetingStatus(
 // UpdateAttendees sets the attendees of a meeting to a given list.
 func UpdateAttendees(
 	ctx context.Context, db *database.Database,
-	meetingID, committeeID int64,
+	meetingID int64,
 	seq iter.Seq2[string, bool],
 ) error {
 	tx, err := db.DB.BeginTx(ctx, nil)
@@ -318,17 +318,6 @@ func UpdateAttendees(
 		return err
 	}
 	defer tx.Rollback()
-	// As a security measure check if meetingID and committeeID match.
-	const existsSQL = `SELECT EXISTS(SELECT 1 FROM committees c JOIN meetings m ` +
-		`ON c.id = m.committees_id ` +
-		`WHERE m.id = ? AND c.id = ?)`
-	var exists bool
-	if err := tx.QueryRowContext(ctx, existsSQL, meetingID, committeeID).Scan(&exists); err != nil {
-		return fmt.Errorf("checking committee failed: %w", err)
-	}
-	if !exists {
-		return nil
-	}
 	// Delete all attendees.
 	const deleteAllSQL = `DELETE FROM attendees WHERE meetings_id = ?`
 	if _, err := tx.ExecContext(ctx, deleteAllSQL, meetingID); err != nil {
@@ -348,4 +337,59 @@ func UpdateAttendees(
 		}
 	}
 	return tx.Commit()
+}
+
+// UpdateAttendee updates a given attendee for given meeting.
+func UpdateAttendee(
+	ctx context.Context, db *database.Database,
+	meetingID int64,
+	nickname string,
+	attend, voting bool,
+) error {
+	tx, err := db.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	const (
+		insertSQL = `INSERT INTO attendees (meetings_id, nickname, voting_allowed) ` +
+			`VALUES (?, ?, ?) ` +
+			`ON CONFLICT DO UPDATE SET voting_allowed = ?`
+		deleteSQL = `DELETE FROM attendees WHERE meetings_id = ? AND nickname = ?`
+	)
+	if attend {
+		_, err = tx.ExecContext(ctx, insertSQL, meetingID, nickname, voting, voting)
+	} else {
+		_, err = tx.ExecContext(ctx, deleteSQL, meetingID, nickname)
+	}
+	if err != nil {
+		return fmt.Errorf("updating attendee failed: %w", err)
+	}
+	return tx.Commit()
+}
+
+// AttendedMeetings returns a set of ids of meetings the given user attended.
+func AttendedMeetings(
+	ctx context.Context,
+	db *database.Database,
+	nickname string,
+) (map[int64]bool, error) {
+	const attendedSQL = `SELECT meetings_id FROM attendees WHERE nickname = ?`
+	rows, err := db.DB.QueryContext(ctx, attendedSQL, nickname)
+	if err != nil {
+		return nil, fmt.Errorf("querying attended meetings failed: %w", err)
+	}
+	defer rows.Close()
+	meetings := make(map[int64]bool)
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scanning attended meetings failed: %w", err)
+		}
+		meetings[id] = true
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("querying attended meetings failed: %w", err)
+	}
+	return meetings, nil
 }
