@@ -13,6 +13,10 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {{- $running   := eq .Meeting.Status (MeetingStatus "running") }}
+  {{- if $running }}
+    <meta http-equiv="Refresh" content="300">
+  {{- end }}
   <link rel="stylesheet" href="/static/styles/simple.min.css">
   <title>OQC - OASIS Quorum Calculator</title>
 </head>
