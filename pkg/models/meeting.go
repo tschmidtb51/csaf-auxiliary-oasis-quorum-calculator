@@ -103,9 +103,7 @@ func (mf MeetingFilter) And(other MeetingFilter) MeetingFilter {
 
 // MeetingCommitteeIDsFilter filters meetings by their committee ids.
 func MeetingCommitteeIDsFilter(seq iter.Seq[*Committee]) MeetingFilter {
-	ids := maps.Collect(misc.Attribute(misc.Map(seq, func(c *Committee) int64 {
-		return c.ID
-	}), true))
+	ids := maps.Collect(misc.Attribute(misc.Map(seq, (*Committee).GetID), true))
 	return func(m *Meeting) bool { return ids[m.CommitteeID] }
 }
 
