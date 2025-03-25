@@ -13,12 +13,13 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- $member    := Role "member" }}
 {{- $user      := .User }}
 {{- $attended  := .Attended }}
-{{- $meetingOnHold  := MeetingStatus "onhold" }}
-{{- $meetingRunning := MeetingStatus "running" }}
-{{- $runningExist   := $meetings.Contains RunningFilter }}
+{{- $meetingOnHold    := MeetingStatus "onhold" }}
+{{- $meetingRunning   := MeetingStatus "running" }}
+{{- $allRunningFilter := RunningFilter.And (MeetingCommitteeIDsFilter ($user.CommitteesWithRole $member)) }}
+{{- $runningExist     := $meetings.Contains $allRunningFilter }}
 {{ if $runningExist }}
 <fieldset>
-  <a> Currently running: </a>
+  <legend>Currently running:</legend>
   <table>
     <thead>
       <tr>
@@ -29,12 +30,8 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
       </tr>
     </thead>
     <tbody>
-    {{ range $user.Committees }}
-      {{- $ms := $user.FindMembership .Name }}
-      {{- if not ($ms.HasRole $member) }}{{ continue }}{{ end }}
-      {{- $committeeID := .ID }}
-      {{ $filter := (CommitteeIDFilter .ID).And RunningFilter }}
-      {{ range $meetings.Filter $filter }}
+      {{ range $meetings.Filter $allRunningFilter }}
+        {{- $committeeID := .CommitteeID }}
         <tr>
            <td>
               {{ $att := index $attended .ID }}
@@ -57,18 +54,17 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
           <td>{{ if .Description }}{{ Shorten .Description }}{{ end }}</td>
         </tr>
       {{ end }}
-    {{ end }}
     </tbody>
   </table>
 </fieldset>
 {{- end }}
 
-{{range $user.Committees }}
+{{ range $user.Committees }}
 {{- $ms := $user.FindMembership .Name }}
 {{- if not ($ms.HasRole $member) }}{{ continue }}{{ end }}
 {{- $committeeID := .ID }}
 <fieldset>
-  <legend>Committee <strong>{{ .Name }}</strong></legend>
+  <legend>Committee: <strong>{{ .Name }}</strong></legend>
   {{ $filter := CommitteeIDFilter .ID }}
   {{ if $meetings.Contains $filter }}
   <table>

@@ -168,6 +168,18 @@ func (u *User) CountMemberships(role Role) int {
 	return count
 }
 
+// CommitteesWithRole returns a list of ids of Committees
+// in which the user has the given role.
+func (u *User) CommitteesWithRole(role Role) []int64 {
+	var ids []int64
+	for _, m := range u.Memberships {
+		if m.HasRole(role) {
+			ids = append(ids, m.Committee.ID)
+		}
+	}
+	return ids
+}
+
 // Committees returns an iterator over the committees of the user.
 func (u *User) Committees() iter.Seq[*Committee] {
 	return func(yield func(*Committee) bool) {

@@ -100,6 +100,15 @@ func (mf MeetingFilter) And(other MeetingFilter) MeetingFilter {
 	}
 }
 
+// MeetingCommitteeIDsFilter filters meetings by their committee ids.
+func MeetingCommitteeIDsFilter(ids []int64) MeetingFilter {
+	return func(m *Meeting) bool {
+		return slices.ContainsFunc(ids, func(x int64) bool {
+			return m.CommitteeID == x
+		})
+	}
+}
+
 // CommitteeIDFilter creates a filter condition which looks for
 // meetings with the given committee id.
 func CommitteeIDFilter(id int64) MeetingFilter {
