@@ -300,7 +300,7 @@ func (c *Controller) meetingStatus(w http.ResponseWriter, r *http.Request) {
 		return cmp.Or(
 			strings.Compare(emptyString(a.Firstname), emptyString(b.Firstname)),
 			strings.Compare(emptyString(a.Lastname), emptyString(b.Lastname)),
-			cmp.Compare(a.Nickname, b.Nickname),
+			strings.Compare(a.Nickname, b.Nickname),
 		)
 	})
 
