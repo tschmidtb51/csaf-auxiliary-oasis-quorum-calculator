@@ -398,7 +398,7 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 						memberStatus, wasMemberPrev, err := models.UserMemberStatusSinceTx(
 							ctx, tx,
 							user.Nickname, committeeID,
-							prevMeeting.StopTime) // TODO: previous meeting
+							prevMeeting.StopTime)
 						if err != nil {
 							return err
 						}
