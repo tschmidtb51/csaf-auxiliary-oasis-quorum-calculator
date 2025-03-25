@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"iter"
+	"maps"
 	"slices"
 	"strings"
 	"time"
@@ -101,12 +102,11 @@ func (mf MeetingFilter) And(other MeetingFilter) MeetingFilter {
 }
 
 // MeetingCommitteeIDsFilter filters meetings by their committee ids.
-func MeetingCommitteeIDsFilter(ids []int64) MeetingFilter {
-	return func(m *Meeting) bool {
-		return slices.ContainsFunc(ids, func(x int64) bool {
-			return m.CommitteeID == x
-		})
-	}
+func MeetingCommitteeIDsFilter(seq iter.Seq[*Committee]) MeetingFilter {
+	ids := maps.Collect(misc.Attribute(misc.Map(seq, func(c *Committee) int64 {
+		return c.ID
+	}), true))
+	return func(m *Meeting) bool { return ids[m.CommitteeID] }
 }
 
 // CommitteeIDFilter creates a filter condition which looks for
@@ -198,7 +198,8 @@ func LoadMeetings(
 	defer tx.Rollback()
 	const loadSQL = `SELECT id, status, start_time, stop_time, description ` +
 		`FROM meetings ` +
-		`WHERE committees_id = ? `
+		`WHERE committees_id = ? ` +
+		`ORDER BY unixepoch(start_time)`
 	stmt, err := tx.PrepareContext(ctx, loadSQL)
 	if err != nil {
 		return nil, fmt.Errorf("preparing loadind meetings failed: %w", err)
@@ -230,12 +231,6 @@ func LoadMeetings(
 			return nil, fmt.Errorf("scanning meetings failed: %w", err)
 		}
 	}
-	slices.SortFunc(meetings, func(a, b *Meeting) int {
-		if a.Status == MeetingRunning && a.Status != b.Status {
-			return -1
-		}
-		return a.StartTime.Compare(b.StartTime)
-	})
 	return meetings, nil
 }
 
