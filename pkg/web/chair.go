@@ -9,12 +9,12 @@
 package web
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -298,20 +298,12 @@ func (c *Controller) meetingStatus(w http.ResponseWriter, r *http.Request) {
 		NonVoting:       numNonVoters,
 	}
 
-	stringValue := func(s *string) string {
-		if s == nil {
-			return ""
-		}
-		return *s
-	}
-	sort.Slice(members, func(i, j int) bool {
-		if members[i].Firstname != members[j].Firstname {
-			return stringValue(members[i].Firstname) < stringValue(members[j].Firstname)
-		}
-		if members[i].Lastname != members[j].Lastname {
-			return stringValue(members[i].Lastname) < stringValue(members[j].Lastname)
-		}
-		return members[i].Nickname < members[j].Nickname
+	slices.SortFunc(members, func(a, b *models.User) int {
+		return cmp.Or(
+			strings.Compare(emptyString(a.Firstname), emptyString(b.Firstname)),
+			strings.Compare(emptyString(a.Lastname), emptyString(b.Lastname)),
+			cmp.Compare(a.Nickname, b.Nickname),
+		)
 	})
 
 	data := templateData{

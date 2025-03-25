@@ -88,6 +88,15 @@ func nilString(s string) *string {
 	return nil
 }
 
+// emptyString returns an empty string if the pointer is nil
+// the dereferenced string otherwise.
+func emptyString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
 // nilChanger updates a potential nil string.
 func nilChanger(changed *bool, s **string, v string) {
 	switch {
