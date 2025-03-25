@@ -15,9 +15,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- $meetingOnHold    := MeetingStatus "onhold" }}
 {{- $meetingRunning   := MeetingStatus "running" }}
 {{- $meetingConcluded := MeetingStatus "concluded" }}
-{{range $user.Committees }}
-{{- $ms := $user.FindMembership .Name }}
-{{- if not ($ms.HasRole $chair) }}{{ continue }}{{ end }}
+{{ range $user.CommitteesWithRole $chair }}
 {{- $committeeID := .ID }}
 <fieldset>
   <legend>Committee <strong>{{ .Name }}</strong></legend>
