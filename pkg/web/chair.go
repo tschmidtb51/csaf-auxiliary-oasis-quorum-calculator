@@ -271,11 +271,9 @@ func (c *Controller) meetingStatus(w http.ResponseWriter, r *http.Request) {
 			ms.HasRole(models.MemberRole) {
 			switch ms.Status {
 			case models.Voting:
-				{
-					numVoters++
-					if attendees[member.Nickname] {
-						attendingVoters++
-					}
+				numVoters++
+				if attendees[member.Nickname] {
+					attendingVoters++
 				}
 			case models.NoneVoting:
 				numNonVoters++
