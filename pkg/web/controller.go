@@ -49,6 +49,7 @@ var templateFuncs = template.FuncMap{
 	"Shorten":              shorten,
 	"Args":                 args,
 	"CommitteeIDFilter":    models.CommitteeIDFilter,
+	"RunningFilter":        models.RunningFilter,
 	"DatetimeHoursMinutes": datetimeHoursMinutes,
 	"HoursMinutes":         hoursMinutes,
 }

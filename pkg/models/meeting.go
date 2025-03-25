@@ -98,6 +98,11 @@ func CommitteeIDFilter(id int64) func(m *Meeting) bool {
 	}
 }
 
+// RunningFilter helps return running meetings.
+func RunningFilter(m *Meeting) bool {
+	return m.Status == MeetingRunning
+}
+
 // OverlapFilter creates a filter which checks if a meeting overlaps
 // a given interval.
 func OverlapFilter(start, stop time.Time, exceptions ...int64) func(m *Meeting) bool {
