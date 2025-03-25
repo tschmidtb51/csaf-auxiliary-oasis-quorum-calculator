@@ -49,7 +49,7 @@ var templateFuncs = template.FuncMap{
 	"Shorten":              shorten,
 	"Args":                 args,
 	"CommitteeIDFilter":    models.CommitteeIDFilter,
-	"RunningFilter":        models.RunningFilter,
+	"RunningFilter":        func() models.MeetingFilter { return models.RunningFilter },
 	"DatetimeHoursMinutes": datetimeHoursMinutes,
 	"HoursMinutes":         hoursMinutes,
 }

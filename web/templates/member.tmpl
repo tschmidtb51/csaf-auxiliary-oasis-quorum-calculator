@@ -13,18 +13,10 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- $member    := Role "member" }}
 {{- $user      := .User }}
 {{- $attended  := .Attended }}
-{{- $meetingOnHold    := MeetingStatus "onhold" }}
-{{- $meetingRunning   := MeetingStatus "running" }}
-{{- $runningExist     := false }}
-
-{{- range $meetings}}
-    {{ $filterRun := RunningFilter . }}
-    {{ if $filterRun }}
-      {{ $runningExist = true }}
-    {{ end }}
-{{- end }}
-
-{{- if $runningExist }}
+{{- $meetingOnHold  := MeetingStatus "onhold" }}
+{{- $meetingRunning := MeetingStatus "running" }}
+{{- $runningExist   := $meetings.Contains RunningFilter }}
+{{ if $runningExist }}
 <fieldset>
   <a> Currently running: </a>
   <table>
@@ -37,24 +29,25 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
       </tr>
     </thead>
     <tbody>
-    {{range $user.Committees }}
+    {{ range $user.Committees }}
       {{- $ms := $user.FindMembership .Name }}
       {{- if not ($ms.HasRole $member) }}{{ continue }}{{ end }}
       {{- $committeeID := .ID }}
-      {{ $filter := CommitteeIDFilter .ID }}
-      {{ if $meetings.Contains $filter }}
+      {{ $filter := (CommitteeIDFilter .ID).And RunningFilter }}
       {{ range $meetings.Filter $filter }}
-        {{ $filterRun := RunningFilter . }}
-        {{ if $filterRun }}
-          <tr>
-            <td>
+        <tr>
+           <td>
               {{ $att := index $attended .ID }}
               <a href="/meeting_status?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}">
                 <strong>Running</strong>
               </a>
-              {{- if      eq .Status $meetingRunning }}
-              {{ if $att }}<a href="/member_attend?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}&attend=false"><mark>Click&nbsp;to&nbsp;skip!</mark></a>
-              {{- else }}<a href="/member_attend?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}&attend=true"><mark>Click&nbsp;to&nbsp;join!</mark></a>{{ end -}}
+              {{- if eq .Status $meetingRunning }}
+                {{ if $att }}<a href="/member_attend?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}&attend=false">
+                <mark>Click&nbsp;to&nbsp;skip!</mark></a>
+                {{- else -}}
+                <a href="/member_attend?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}&attend=true">
+                <mark>Click&nbsp;to&nbsp;join!</mark></a>
+                {{- end -}}
               {{- end }}
             </td>
           <td>
@@ -63,8 +56,6 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
           <td><time datetime="{{ .Duration | DatetimeHoursMinutes }}">{{ .Duration | HoursMinutes }}</time></td>
           <td>{{ if .Description }}{{ Shorten .Description }}{{ end }}</td>
         </tr>
-      {{ end }}
-      {{ end }}
       {{ end }}
     {{ end }}
     </tbody>
