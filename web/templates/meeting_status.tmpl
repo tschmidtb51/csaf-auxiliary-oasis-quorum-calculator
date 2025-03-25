@@ -40,6 +40,32 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 [<a href="/meeting_status_store?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}&status=concluded">Conclude</a>]
 {{ end }}<br>
 <strong>Quorum</strong>: {{ .Quorum.Number }} ({{ if not .Quorum.Reached }}not {{ end }}reached)<br>
+<table>
+  <tr>
+    <th>Description</th>
+    <th>Count</th>
+  </tr>
+  <tr>
+    <td>Total</td>
+    <td>{{ .Count.Total }}</td>
+  </tr>
+  <tr>
+    <td>Members</td>
+    <td>{{ .Count.Member }}</td>
+  </tr>
+  <tr>
+    <td>Voting Members</td>
+    <td>{{ .Count.Voting }}</td>
+  </tr>
+  <tr>
+    <td>Attending Voting Members</td>
+    <td>{{ .Count.AttendingVoting }}</td>
+  </tr>
+  <tr>
+    <td>Persistent Non-Voting Members</td>
+    <td>{{ .Count.NonVoting }}</td>
+  </tr>
+</table>
 </p>
 {{ if .Members }}
 {{- $statusMember     := MemberStatus "member" }}

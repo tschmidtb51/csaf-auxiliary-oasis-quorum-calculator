@@ -290,10 +290,11 @@ func (c *Controller) meetingStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	count := models.MemberCount{
-		Total:     len(members),
-		Member:    numMembers,
-		Voting:    numVoters,
-		NonVoting: numNonVoters,
+		Total:           len(members),
+		Member:          numMembers,
+		Voting:          numVoters,
+		AttendingVoting: attendingVoters,
+		NonVoting:       numNonVoters,
 	}
 
 	data := templateData{
