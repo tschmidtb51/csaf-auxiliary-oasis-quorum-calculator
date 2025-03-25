@@ -113,6 +113,14 @@ func (ms MemberStatus) String() string {
 	}
 }
 
+// CommitteeByID return the committee for a given id.
+func (u *User) CommitteeByID(id int64) *Committee {
+	if ms := u.FindMembershipCriterion(MembershipByID(id)); ms != nil {
+		return ms.Committee
+	}
+	return nil
+}
+
 // IsMember returns true if user is member of a committee with a given name.
 func (u *User) IsMember(committeeName string) bool {
 	return u.FindMembership(committeeName) != nil

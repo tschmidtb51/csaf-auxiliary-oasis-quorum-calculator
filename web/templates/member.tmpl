@@ -36,7 +36,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
            <td>
               {{ $att := index $attended .ID }}
               <a href="/meeting_status?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}">
-                <strong>Running</strong>
+                <strong>{{ ($user.CommitteeByID $committeeID).Name }}</strong>
               </a>
               {{- if eq .Status $meetingRunning }}
                 {{ if $att }}<a href="/member_attend?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}&attend=false">
