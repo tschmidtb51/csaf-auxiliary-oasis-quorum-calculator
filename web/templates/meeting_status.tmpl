@@ -40,6 +40,32 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 [<a href="/meeting_status_store?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}&status=concluded">Conclude</a>]
 {{ end }}<br>
 <strong>Quorum</strong>: {{ .Quorum.Number }} ({{ if not .Quorum.Reached }}not {{ end }}reached)<br>
+<table>
+  <tr>
+    <th>Description</th>
+    <th>Count</th>
+  </tr>
+  <tr>
+    <td>Total</td>
+    <td>{{ .Count.Total }}</td>
+  </tr>
+  <tr>
+    <td>Members</td>
+    <td>{{ .Count.Member }}</td>
+  </tr>
+  <tr>
+    <td>Voting Members</td>
+    <td>{{ .Count.Voting }}</td>
+  </tr>
+  <tr>
+    <td>Attending Voting Members</td>
+    <td>{{ .Count.AttendingVoting }}</td>
+  </tr>
+  <tr>
+    <td>Persistent Non-Voting Members</td>
+    <td>{{ .Count.NonVoting }}</td>
+  </tr>
+</table>
 </p>
 {{ if .Members }}
 {{- $statusMember     := MemberStatus "member" }}
@@ -55,9 +81,9 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   <tr>
     <th><abbr title="Attending">Att</abbr></th>
     <th>User ({{ .Count.Total }})</th>
-    <th><abbr title="None voting member">M ({{ .Count.Member }})</abbr></th>
-    <th><abbr title="Voting member">V ({{ .Count.Voting }})</abbr></th>
-    <th><abbr title="Persistent None Voter">P ({{ .Count.NonVoting }})</abbr></th>
+    <th> Non-Voting<br>Member ({{ .Count.Member }}) </th>
+    <th> Voting<br>Member ({{ .Count.Voting }}) </th>
+    <th> Persistent<br>Non-Voting<br>Member ({{ .Count.NonVoting }}) </th>
   </tr>
 </thead>
 <tbody>
