@@ -15,12 +15,56 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- $attended  := .Attended }}
 {{- $meetingOnHold    := MeetingStatus "onhold" }}
 {{- $meetingRunning   := MeetingStatus "running" }}
-{{range $user.Committees }}
+{{- $allRunningFilter := RunningFilter.And (MeetingCommitteeIDsFilter ($user.CommitteesWithRole $member)) }}
+{{- $runningExist     := $meetings.Contains $allRunningFilter }}
+{{ if $runningExist }}
+<fieldset>
+  <legend>Currently running:</legend>
+  <table>
+    <thead>
+      <tr>
+        <th>Status</th>
+        <th>Start</th>
+        <th>Duration</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range $meetings.Filter $allRunningFilter }}
+        {{- $committeeID := .CommitteeID }}
+        <tr>
+           <td>
+              {{ $att := index $attended .ID }}
+              <a href="/meeting_status?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}">
+                <strong>{{ ($user.CommitteeByID $committeeID).Name }}</strong>
+              </a>
+              {{- if eq .Status $meetingRunning }}
+                {{ if $att }}<a href="/member_attend?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}&attend=false">
+                <mark>Click&nbsp;to&nbsp;skip!</mark></a>
+                {{- else -}}
+                <a href="/member_attend?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}&attend=true">
+                <mark>Click&nbsp;to&nbsp;join!</mark></a>
+                {{- end -}}
+              {{- end }}
+            </td>
+          <td>
+            <time datetime="{{ .StartTime.UTC.Format "2006-01-02T15:04:05Z07:00" }}">{{ .StartTime.UTC.Format "2006-01-02 15:04 MST" }}</time>
+          </td>
+          <td><time datetime="{{ .Duration | DatetimeHoursMinutes }}">{{ .Duration | HoursMinutes }}</time></td>
+          <td>{{ if .Description }}{{ Shorten .Description }}{{ end }}</td>
+        </tr>
+      {{ end }}
+    </tbody>
+  </table>
+</fieldset>
+{{- end }}
+
+{{ range $user.Committees }}
 {{- $ms := $user.FindMembership .Name }}
 {{- if not ($ms.HasRole $member) }}{{ continue }}{{ end }}
 {{- $committeeID := .ID }}
 <fieldset>
-  <legend>Committee <strong>{{ .Name }}</strong></legend>
+  <legend>Committee: <strong>{{ .Name }}</strong></legend>
   {{ $filter := CommitteeIDFilter .ID }}
   {{ if $meetings.Contains $filter }}
   <table>

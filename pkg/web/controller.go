@@ -43,15 +43,16 @@ func (td templateData) hasError() bool {
 
 // templateFuncs are the functions usable in the templates.
 var templateFuncs = template.FuncMap{
-	"Role":                 models.ParseRole,
-	"MemberStatus":         models.ParseMemberStatus,
-	"MeetingStatus":        models.ParseMeetingStatus,
-	"Shorten":              shorten,
-	"Args":                 args,
-	"CommitteeIDFilter":    models.CommitteeIDFilter,
-	"RunningFilter":        models.RunningFilter,
-	"DatetimeHoursMinutes": datetimeHoursMinutes,
-	"HoursMinutes":         hoursMinutes,
+	"Role":                      models.ParseRole,
+	"MemberStatus":              models.ParseMemberStatus,
+	"MeetingStatus":             models.ParseMeetingStatus,
+	"Shorten":                   shorten,
+	"Args":                      args,
+	"CommitteeIDFilter":         models.CommitteeIDFilter,
+	"RunningFilter":             func() models.MeetingFilter { return models.RunningFilter },
+	"MeetingCommitteeIDsFilter": models.MeetingCommitteeIDsFilter,
+	"DatetimeHoursMinutes":      datetimeHoursMinutes,
+	"HoursMinutes":              hoursMinutes,
 }
 
 // NewController returns a new Controller.

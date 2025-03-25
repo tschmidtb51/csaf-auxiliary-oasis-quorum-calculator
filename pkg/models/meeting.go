@@ -90,9 +90,28 @@ func ParseMeetingStatus(s string) (MeetingStatus, error) {
 	}
 }
 
+// MeetingFilter defines a filter mechanism for meetings.
+type MeetingFilter func(*Meeting) bool
+
+// And return a filter which is 'and'ing two filters.
+func (mf MeetingFilter) And(other MeetingFilter) MeetingFilter {
+	return func(m *Meeting) bool {
+		return mf(m) && other(m)
+	}
+}
+
+// MeetingCommitteeIDsFilter filters meetings by their committee ids.
+func MeetingCommitteeIDsFilter(ids []int64) MeetingFilter {
+	return func(m *Meeting) bool {
+		return slices.ContainsFunc(ids, func(x int64) bool {
+			return m.CommitteeID == x
+		})
+	}
+}
+
 // CommitteeIDFilter creates a filter condition which looks for
 // meetings with the given committee id.
-func CommitteeIDFilter(id int64) func(m *Meeting) bool {
+func CommitteeIDFilter(id int64) MeetingFilter {
 	return func(m *Meeting) bool {
 		return m.CommitteeID == id
 	}

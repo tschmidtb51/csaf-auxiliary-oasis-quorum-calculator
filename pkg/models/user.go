@@ -113,6 +113,14 @@ func (ms MemberStatus) String() string {
 	}
 }
 
+// CommitteeByID return the committee for a given id.
+func (u *User) CommitteeByID(id int64) *Committee {
+	if ms := u.FindMembershipCriterion(MembershipByID(id)); ms != nil {
+		return ms.Committee
+	}
+	return nil
+}
+
 // IsMember returns true if user is member of a committee with a given name.
 func (u *User) IsMember(committeeName string) bool {
 	return u.FindMembership(committeeName) != nil
@@ -166,6 +174,18 @@ func (u *User) CountMemberships(role Role) int {
 		}
 	}
 	return count
+}
+
+// CommitteesWithRole returns a list of ids of Committees
+// in which the user has the given role.
+func (u *User) CommitteesWithRole(role Role) []int64 {
+	var ids []int64
+	for _, m := range u.Memberships {
+		if m.HasRole(role) {
+			ids = append(ids, m.Committee.ID)
+		}
+	}
+	return ids
 }
 
 // Committees returns an iterator over the committees of the user.
