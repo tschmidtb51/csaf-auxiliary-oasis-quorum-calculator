@@ -127,6 +127,19 @@ func LoadMeeting(
 	ctx context.Context, db *database.Database,
 	meetingID, committeeID int64,
 ) (*Meeting, error) {
+	tx, err := db.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	return LoadMeetingTx(ctx, tx, meetingID, committeeID)
+}
+
+// LoadMeetingTx loads a meeting by its id.
+func LoadMeetingTx(
+	ctx context.Context, tx *sql.Tx,
+	meetingID, committeeID int64,
+) (*Meeting, error) {
 	meeting := Meeting{
 		ID:          meetingID,
 		CommitteeID: committeeID,
@@ -134,7 +147,7 @@ func LoadMeeting(
 	const loadSQL = `SELECT status, start_time, stop_time, description ` +
 		`FROM meetings ` +
 		`WHERE id = ? AND committees_id = ?`
-	switch err := db.DB.QueryRowContext(ctx, loadSQL, meetingID, committeeID).Scan(
+	switch err := tx.QueryRowContext(ctx, loadSQL, meetingID, committeeID).Scan(
 		&meeting.Status,
 		&meeting.StartTime,
 		&meeting.StopTime,
@@ -436,25 +449,25 @@ func MeetingAttendeesTx(
 	return attendees, nil
 }
 
-// PreviousMeetingAttendeesTx loads the attendees and their
-// voting rights of the meeting before the given meeting.
-func PreviousMeetingAttendeesTx(
+// PreviousMeetingTx the id of the meeting before the given meeting.
+// Returns false as the second value if there isn't any.
+func PreviousMeetingTx(
 	ctx context.Context,
 	tx *sql.Tx,
 	meetingID int64,
-) (map[string]bool, error) {
-	const lastSQL = `SELECT m2.id FROM meetings m1, meetings m2 ` +
+) (int64, bool, error) {
+	const prevSQL = `SELECT m2.id FROM meetings m1, meetings m2 ` +
 		`WHERE m1.id = ? ` +
 		`AND m1.committees_id = m2.committees_id ` +
 		`AND m2.status = 2 ` + // MeetingConcluded
 		`AND unixepoch(m2.start_time) < unixepoch(m1.start_time) ` +
 		`ORDER by unixepoch(m2.start_time) DESC LIMIT 1`
-	var lastID int64
-	switch err := tx.QueryRowContext(ctx, lastSQL, meetingID).Scan(&lastID); {
+	var prevID int64
+	switch err := tx.QueryRowContext(ctx, prevSQL, meetingID).Scan(&prevID); {
 	case errors.Is(err, sql.ErrNoRows):
-		return nil, nil
+		return 0, false, nil
 	case err != nil:
-		return nil, fmt.Errorf("find last meeting failed: %w", err)
+		return 0, false, fmt.Errorf("find last meeting failed: %w", err)
 	}
-	return MeetingAttendeesTx(ctx, tx, lastID)
+	return prevID, true, nil
 }

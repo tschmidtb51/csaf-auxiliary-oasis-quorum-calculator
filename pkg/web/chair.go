@@ -11,7 +11,7 @@ package web
 import (
 	"context"
 	"database/sql"
-	"log/slog"
+	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
@@ -332,12 +332,16 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 		if meetingStatus != models.MeetingConcluded {
 			return nil
 		}
-		prevAttendees, err := models.PreviousMeetingAttendeesTx(ctx, tx, meetingID)
+		prevMeetingID, hasPrev, err := models.PreviousMeetingTx(ctx, tx, meetingID)
 		if err != nil {
 			return err
 		}
-		if prevAttendees == nil { // There was no last meeting.
+		if !hasPrev { // We need two meetings.
 			return nil
+		}
+		prevAttendees, err := models.MeetingAttendeesTx(ctx, tx, prevMeetingID)
+		if err != nil {
+			return err
 		}
 		currAttendees, err := models.MeetingAttendeesTx(ctx, tx, meetingID)
 		if err != nil {
@@ -347,6 +351,24 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 		if err != nil {
 			return err
 		}
+
+		// Lazy previous loading as we don't need this in all cases.
+		var prevMeeting *models.Meeting
+		loadPrevMeeting := func() error {
+			if prevMeeting != nil {
+				return nil
+			}
+			var err error
+			prevMeeting, err = models.LoadMeetingTx(ctx, tx, meetingID, committeeID)
+			if err != nil {
+				err = fmt.Errorf("loading previous meeting failed: %w", err)
+			}
+			return err
+		}
+
+		// Lists of users to upgrade and downgrade.
+		var upgrades, downgrades []string
+
 		crit := models.MembershipByID(committeeID)
 		for _, user := range users {
 			ms := user.FindMembershipCriterion(crit)
@@ -356,14 +378,75 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 			votingCurr, wasInCurr := currAttendees[user.Nickname]
 			votingPrev, wasInPrev := prevAttendees[user.Nickname]
 
-			_, _ = votingCurr, wasInCurr
-			_, _ = votingPrev, wasInPrev
+			if !wasInCurr { // user was absent in current meeting.
+				if ms.Status == models.Voting { // currently a voting member
+					if !wasInPrev { // was absent in previous meeting.
+						// There could be three reasons:
+						// 1. User was not in the committee at end of the previous meeting.
+						// 2. User was not a voting member at this time.
+						// 3. User was a voting member but absent.
+						if err := loadPrevMeeting(); err != nil {
+							return err
+						}
+						memberStatus, wasMemberPrev, err := models.UserMemberStatusSinceTx(
+							ctx, tx,
+							user.Nickname, committeeID,
+							prevMeeting.StopTime) // TODO: previous meeting
+						if err != nil {
+							return err
+						}
+						switch {
+						case !wasMemberPrev:
+							// user was not member so that is his/her first strike.
+						case memberStatus != models.Voting:
+							// user was a member but at not a voter -> first strike.
+						default:
+							// second strike
+							downgrades = append(downgrades, user.Nickname)
+						}
+					}
+				}
+				continue
+			}
+			// User was in current meeting
+			if !votingCurr && ms.Status == models.Member { // Currently a none voting member
+				if wasInPrev { // Was in previous too
+					if votingPrev { // We know user was a downgraded voter -> no upgrade.
+						continue
+					}
+					// To be upgrade the user needs to be a member at the
+					// time of the previous time.
+					if err := loadPrevMeeting(); err != nil {
+						return err
+					}
+					memberStatus, wasMemberPrev, err := models.UserMemberStatusSinceTx(
+						ctx, tx,
+						user.Nickname, committeeID,
+						prevMeeting.StopTime)
+					if err != nil {
+						return err
+					}
+					if wasMemberPrev && memberStatus == models.Member {
+						upgrades = append(upgrades, user.Nickname)
+					}
+				}
+			}
+		} // all committee users.
 
-			// TODO: To be continued.
-
+		// Store the changes.
+		if len(upgrades) > 0 || len(downgrades) > 0 {
+			when := time.Now() // TODO: Should we adjust the end time of the meeting?
+			if err := models.UpdateUserCommitteeStatusTx(
+				ctx, tx,
+				misc.Join2(
+					misc.Attribute(slices.Values(upgrades), models.Voting),
+					misc.Attribute(slices.Values(downgrades), models.Member)),
+				committeeID,
+				when,
+			); err != nil {
+				return fmt.Errorf("upgrading / downgrading members failed: %w", err)
+			}
 		}
-		// TODO: Update voting rights of committee members.
-		slog.Info("TODO: Need to update the voting rights")
 		return nil
 	}
 	if !check(w, r, models.UpdateMeetingStatus(

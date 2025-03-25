@@ -58,7 +58,7 @@ CREATE TABLE member_history (
     committees_id INTEGER   NOT NULL REFERENCES committees(id) ON DELETE CASCADE,
     status        INTEGER   NOT NULL DEFAULT 0 REFERENCES member_status(id) ON DELETE CASCADE,
     since         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(nickname, committees_id, status, since)
+    UNIQUE(nickname, committees_id, since)
 );
 
 CREATE TABLE committee_roles (

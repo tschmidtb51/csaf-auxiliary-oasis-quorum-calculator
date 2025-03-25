@@ -92,7 +92,7 @@ func ParseMemberStatus(s string) (MemberStatus, error) {
 		return Member, nil
 	case "voting":
 		return Voting, nil
-	case "nonevoting":
+	case "nonevoting": // "nonvoting"
 		return NoneVoting, nil
 	default:
 		return 0, fmt.Errorf("invalid member status %q", s)
@@ -502,4 +502,73 @@ func LoadCommitteeUsersTx(
 		users = append(users, user)
 	}
 	return users, nil
+}
+
+// UserMemberStatusSinceTx figures out the member status
+// for a given user in a committee after a given point in time.
+// Returns false the user was not in the committee at this time.
+func UserMemberStatusSinceTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	nickname string, committeeID int64,
+	when time.Time,
+) (MemberStatus, bool, error) {
+	var status MemberStatus
+	const statusSQL = `SELECT status FROM member_history ` +
+		`WHERE nickname = ? AND committees_id = ? AND unixepoch(since) <= unixepoch(?) ` +
+		`ORDER BY unixepoch(since) DESC LIMIT 1`
+	switch err := tx.QueryRowContext(ctx, statusSQL, nickname, committeeID, when).Scan(&status); {
+	case errors.Is(err, sql.ErrNoRows):
+		return 0, false, nil
+	case err != nil:
+		return 0, false, fmt.Errorf("fetching member status failed: %w", err)
+	}
+	return status, true, nil
+}
+
+// UpdateUserCommitteeStatusTx updates the status history of
+// a sequence of users in a committee.
+func UpdateUserCommitteeStatusTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	users iter.Seq2[string, MemberStatus],
+	committeeID int64,
+	since time.Time,
+) error {
+	const (
+		queryLastSQL = `SELECT status FROM member_history ` +
+			`WHERE nickname = ? AND committees_id = ? ` +
+			`ORDER by unixepoch(since) DESC LIMIT 1`
+		insertSQL = `INSERT INTO member_history ` +
+			`(nickname, committees_id, status, since) ` +
+			`VALUES(?, ?, ?, ?)`
+	)
+	qStmt, err := tx.PrepareContext(ctx, queryLastSQL)
+	if err != nil {
+		return fmt.Errorf("preparing user committee status query failed: %w", err)
+	}
+	defer qStmt.Close()
+	iStmt, err := tx.PrepareContext(ctx, insertSQL)
+	if err != nil {
+		return fmt.Errorf("preparing user committee status insert failed: %w", err)
+	}
+	defer iStmt.Close()
+	for nickname, status := range users {
+		var prev MemberStatus
+		switch err := qStmt.QueryRowContext(ctx, nickname, committeeID).Scan(&prev); {
+		case errors.Is(err, sql.ErrNoRows):
+			//	No previous -> insert.
+		case err != nil:
+			return fmt.Errorf("fetching previous member status failed: %w", err)
+		default:
+			if prev == status {
+				continue
+			}
+		}
+		if _, err := iStmt.ExecContext(
+			ctx, nickname, committeeID, status, since); err != nil {
+			return fmt.Errorf("inserting member status failed: %w", err)
+		}
+	}
+	return nil
 }
