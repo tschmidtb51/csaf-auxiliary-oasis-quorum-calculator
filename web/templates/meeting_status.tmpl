@@ -89,7 +89,9 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 <table>
 <thead>
   <tr>
-    <th><abbr title="Attending">Att</abbr></th>
+    <th>Attending</th>
+    <th>Firstname</th>
+    <th>Lastname</th>
     <th>User</th>
     <th>Non-Voting<br>Member</th>
     <th>Voting<br>Member</th>
@@ -106,6 +108,8 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
         {{- else }}{{ if index $attendees .Nickname }}&check;{{ end }}
         {{- end -}}
     </td>
+    <td>{{ if ne .Firstname nil }}{{ .Firstname }}{{ end }}</td>
+    <td>{{ if ne .Lastname nil }}{{ .Lastname }}{{ end }}</td>
     <td>{{ .Nickname }}</td>
     {{ $ms := .FindMembership $committeeName }}
     <td>{{ if eq $ms.Status $statusMember }}&check;{{ end }}</td>

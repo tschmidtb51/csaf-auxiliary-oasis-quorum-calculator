@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -296,6 +297,22 @@ func (c *Controller) meetingStatus(w http.ResponseWriter, r *http.Request) {
 		AttendingVoting: attendingVoters,
 		NonVoting:       numNonVoters,
 	}
+
+	stringValue := func(s *string) string {
+		if s == nil {
+			return ""
+		}
+		return *s
+	}
+	sort.Slice(members, func(i, j int) bool {
+		if members[i].Firstname != members[j].Firstname {
+			return stringValue(members[i].Firstname) < stringValue(members[j].Firstname)
+		}
+		if members[i].Lastname != members[j].Lastname {
+			return stringValue(members[i].Lastname) < stringValue(members[j].Lastname)
+		}
+		return members[i].Nickname < members[j].Nickname
+	})
 
 	data := templateData{
 		"Session":   auth.SessionFromContext(ctx),
