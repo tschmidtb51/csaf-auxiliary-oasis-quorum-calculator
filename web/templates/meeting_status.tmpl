@@ -83,7 +83,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- $statusNoneVoting := MemberStatus "nonevoting" }}
 <fieldset>
 <legend>Attendees</legend>
-{{ if $running -}}
+{{ if $allowWrite -}}
 <form action="/meeting_attend_store" method="post" accept-charset="UTF-8">
 {{- end }}
 <table>
