@@ -134,7 +134,7 @@ func LoadMeeting(
 	return LoadMeetingTx(ctx, tx, meetingID, committeeID)
 }
 
-// LoadMeeting loads a meeting by its id.
+// LoadMeetingTx loads a meeting by its id.
 func LoadMeetingTx(
 	ctx context.Context, tx *sql.Tx,
 	meetingID, committeeID int64,
@@ -448,8 +448,8 @@ func MeetingAttendeesTx(
 	return attendees, nil
 }
 
-// PreviousMeetingAttendeesTx loads the attendees and their
-// voting rights of the meeting before the given meeting.
+// PreviousMeetingTx the id of the meeting before the given meeting.
+// Returns false as the second value if there isn't any.
 func PreviousMeetingTx(
 	ctx context.Context,
 	tx *sql.Tx,

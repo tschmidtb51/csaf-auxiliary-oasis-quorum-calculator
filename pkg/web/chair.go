@@ -12,7 +12,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"slices"
 	"strconv"
@@ -352,7 +351,7 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 			return err
 		}
 
-		// Lazy loading as we don't need this in all cases.
+		// Lazy previous loading as we don't need this in all cases.
 		var prevMeeting *models.Meeting
 		loadPrevMeeting := func() error {
 			if prevMeeting != nil {
@@ -366,6 +365,7 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 			return err
 		}
 
+		// Lists of users to upgrade and downgrade.
 		var upgrades, downgrades []string
 
 		crit := models.MembershipByID(committeeID)
@@ -407,7 +407,7 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 				}
 				continue
 			}
-			// user was in current meeting
+			// User was in current meeting
 			if !votingCurr && ms.Status == models.Member { // Currently a none voting member
 				if wasInPrev { // Was in previous too
 					if votingPrev { // We know user was a downgraded voter -> no upgrade.
@@ -432,11 +432,20 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 			}
 		} // all committee users.
 
-		// TODO: Write to database.
-		_, _ = upgrades, downgrades
-
-		// TODO: Update voting rights of committee members.
-		slog.Info("TODO: Need to update the voting rights")
+		// Store the changes.
+		if len(upgrades) > 0 || len(downgrades) > 0 {
+			when := time.Now() // TODO: Should we adjust the end time of the meeting?
+			if err := models.UpdateUserCommitteeStatusTx(
+				ctx, tx,
+				misc.Join2(
+					misc.Attribute(slices.Values(upgrades), models.Voting),
+					misc.Attribute(slices.Values(downgrades), models.Member)),
+				committeeID,
+				when,
+			); err != nil {
+				return fmt.Errorf("upgrading / downgrading members failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if !check(w, r, models.UpdateMeetingStatus(
