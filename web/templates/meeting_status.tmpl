@@ -52,10 +52,13 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 
 <strong>Quorum</strong>: {{ .Quorum.Number }} ({{ if not .Quorum.Reached }}not {{ end }}reached)<br>
 <table>
+  <thead>
   <tr>
     <th>Description</th>
     <th>Count</th>
   </tr>
+  </thead>
+  <tbody>
   <tr>
     <td>Total</td>
     <td>{{ .Count.Total }}</td>
@@ -76,6 +79,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <td>Persistent Non-Voting Members</td>
     <td>{{ .Count.NonVoting }}</td>
   </tr>
+  </tbody>
 </table>
 {{ if .Members }}
 {{- $statusMember     := MemberStatus "member" }}
