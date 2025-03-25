@@ -92,7 +92,7 @@ func ParseMemberStatus(s string) (MemberStatus, error) {
 		return Member, nil
 	case "voting":
 		return Voting, nil
-	case "nonevoting":
+	case "nonevoting": // "nonvoting"
 		return NoneVoting, nil
 	default:
 		return 0, fmt.Errorf("invalid member status %q", s)
@@ -502,4 +502,26 @@ func LoadCommitteeUsersTx(
 		users = append(users, user)
 	}
 	return users, nil
+}
+
+// UserMemberStatusSinceTx figures out the member status
+// for a given user in a committee after a given point in time.
+// Returns false the user was not in the committee at this time.
+func UserMemberStatusSinceTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	nickname string, committeeID int64,
+	when time.Time,
+) (MemberStatus, bool, error) {
+	var status MemberStatus
+	const statusSQL = `SELECT status FROM member_history ` +
+		`WHERE nickname = ? AND committees_id = ? AND unixepoch(since) <= unixepoch(?) ` +
+		`ORDER BY unixepoch(since) DESC LIMIT 1`
+	switch err := tx.QueryRowContext(ctx, statusSQL, nickname, committeeID, when).Scan(&status); {
+	case errors.Is(err, sql.ErrNoRows):
+		return 0, false, nil
+	case err != nil:
+		return 0, false, fmt.Errorf("fetching member status failed: %w", err)
+	}
+	return status, true, nil
 }
