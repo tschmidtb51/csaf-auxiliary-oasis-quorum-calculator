@@ -37,12 +37,15 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <tr>
       <td>
         {{ $att := index $attended .ID }}
-        {{- if      eq .Status $meetingOnHold }}Waiting{{ if $att }} (Attending}}{{ end }}
-        {{- else if eq .Status $meetingRunning }}<strong>Running</strong>:<br>
-            {{ if $att }}<a href="/member_attend?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}&attend=false"><mark>Click&nbsp;to&nbsp;skip!</mark></a>
-            {{- else }}<a href="/member_attend?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}&attend=true"><mark>Click&nbsp;to&nbsp;join!</mark></a>
-            {{- end }}
-        {{- else }}Concluded{{ if $att }} (Attended){{ end }}{{ end -}}
+        <a href="/meeting_status?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}">
+          {{- if      eq .Status $meetingOnHold }}Waiting{{ if $att }} (Attending}}{{ end }}
+          {{- else if eq .Status $meetingRunning }}<strong>Running</strong>
+          {{- else }}Concluded{{ if $att }} (Attended){{ end }}{{ end -}}
+        </a>
+        {{- if      eq .Status $meetingRunning }}
+          {{ if $att }}<a href="/member_attend?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}&attend=false"><mark>Click&nbsp;to&nbsp;skip!</mark></a>
+          {{- else }}<a href="/member_attend?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}&attend=true"><mark>Click&nbsp;to&nbsp;join!</mark></a>{{ end -}}
+        {{- end }}
       </td>
       <td>
         <time datetime="{{ .StartTime.UTC.Format "2006-01-02T15:04:05Z07:00" }}">{{ .StartTime.UTC.Format "2006-01-02 15:04 MST" }}</time>

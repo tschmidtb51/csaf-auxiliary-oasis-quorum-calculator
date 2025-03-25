@@ -15,6 +15,8 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- $committeeName := .Committee.Name }}
 {{- $onhold    := eq .Meeting.Status (MeetingStatus "onhold") }}
 {{- $running   := eq .Meeting.Status (MeetingStatus "running") }}
+{{- $chair         := .User.CountMemberships (Role "chair") }}
+{{- $allowWrite    := and $running $chair }}
 {{- $concluded := eq .Meeting.Status (MeetingStatus "concluded") }}
 {{- if $running }}
 <p><a href="/meeting_status?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}"
@@ -30,6 +32,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ end }}
 <br>
 <strong>Status</strong>:
+{{ if $chair }}
 {{ if $concluded }}Concluded{{ else }}
 {{- if $onhold }}[Waiting]
 {{- else }}[<a href="/meeting_status_store?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}&status=onhold">Pause</a>]
@@ -38,7 +41,15 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- else }}[<a href="/meeting_status_store?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}&status=running">Run</a>]
 {{- end }}
 [<a href="/meeting_status_store?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}&status=concluded">Conclude</a>]
-{{ end }}<br>
+{{ end }}
+{{ else }}
+{{ if $concluded }}Concluded
+{{ else if $onhold }}Waiting
+{{ else if $running }}Running
+{{ end }}
+{{ end }}
+<br>
+
 <strong>Quorum</strong>: {{ .Quorum.Number }} ({{ if not .Quorum.Reached }}not {{ end }}reached)<br>
 <table>
   <tr>
@@ -66,7 +77,6 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <td>{{ .Count.NonVoting }}</td>
   </tr>
 </table>
-</p>
 {{ if .Members }}
 {{- $statusMember     := MemberStatus "member" }}
 {{- $statusVoting     := MemberStatus "voting" }}
@@ -80,16 +90,16 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 <thead>
   <tr>
     <th><abbr title="Attending">Att</abbr></th>
-    <th>User ({{ .Count.Total }})</th>
-    <th> Non-Voting<br>Member ({{ .Count.Member }}) </th>
-    <th> Voting<br>Member ({{ .Count.Voting }}) </th>
-    <th> Persistent<br>Non-Voting<br>Member ({{ .Count.NonVoting }}) </th>
+    <th>User</th>
+    <th>Non-Voting<br>Member</th>
+    <th>Voting<br>Member</th>
+    <th>Persistent<br>Non-Voting<br>Member</th>
   </tr>
 </thead>
 <tbody>
 {{ range .Members }}
   <tr>
-    <td>{{ if $running }}<input type="checkbox"
+    <td>{{ if $allowWrite }}<input type="checkbox"
                                 name="attend"
                                 value="{{ .Nickname }}"
                                 {{ if index $attendees .Nickname }}checked{{ end }}>
@@ -105,7 +115,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ end }}
 </tbody>
 </table>
-{{ if $running }}
+{{ if $allowWrite }}
 <input type="hidden" name="SESSIONID" value="{{ $sessionID }}">
 <input type="hidden" name="meeting" value="{{ $meetingID }}">
 <input type="hidden" name="committee" value="{{ $committeeID }}">
