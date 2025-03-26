@@ -8,16 +8,18 @@ SPDX-FileCopyrightText: 2025 German Federal Office for Information Security (BSI
 Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 */ -}}
 {{ template "header" . }}
-{{- $sessionID     := .Session.ID }}
-{{- $meetingID     := .Meeting.ID }}
-{{- $attendees     := .Attendees }}
-{{- $committeeID   := .Committee.ID }}
-{{- $committeeName := .Committee.Name }}
-{{- $onhold    := eq .Meeting.Status (MeetingStatus "onhold") }}
-{{- $running   := eq .Meeting.Status (MeetingStatus "running") }}
-{{- $chair         := .User.CountMemberships (Role "chair") }}
-{{- $allowWrite    := and $running $chair }}
-{{- $concluded := eq .Meeting.Status (MeetingStatus "concluded") }}
+{{ template "error" . }}
+{{- $sessionID      := .Session.ID }}
+{{- $meetingID      := .Meeting.ID }}
+{{- $attendees      := .Attendees }}
+{{- $committeeID    := .Committee.ID }}
+{{- $committeeName  := .Committee.Name }}
+{{- $onhold         := eq .Meeting.Status (MeetingStatus "onhold") }}
+{{- $running        := eq .Meeting.Status (MeetingStatus "running") }}
+{{- $alreadyRunning := .AlreadyRunning }}
+{{- $chair          := .User.CountMemberships (Role "chair") }}
+{{- $allowWrite     := and $running $chair }}
+{{- $concluded      := eq .Meeting.Status (MeetingStatus "concluded") }}
 {{- if $running }}
 <p><a href="/meeting_status?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}"
       >&#x27F3; Refresh to see who has attended recently.</a>
@@ -37,7 +39,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- if $onhold }}[Waiting]
 {{- else }}[<a href="/meeting_status_store?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}&status=onhold">Pause</a>]
 {{- end }}
-{{ if $running }}[Running]
+{{ if or $running $alreadyRunning }}[Running]
 {{- else }}[<a href="/meeting_status_store?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}&status=running">Run</a>]
 {{- end }}
 [<a href="/meeting_status_store?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}&status=concluded">Conclude</a>]

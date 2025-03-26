@@ -12,6 +12,7 @@ import (
 	"cmp"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -236,6 +237,14 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) meetingStatus(w http.ResponseWriter, r *http.Request) {
+	c.meetingStatusError(w, r, "")
+}
+
+func (c *Controller) meetingStatusError(
+	w http.ResponseWriter,
+	r *http.Request,
+	errMsg string,
+) {
 	var (
 		meetingID, err1   = strconv.ParseInt(r.FormValue("meeting"), 10, 64)
 		committeeID, err2 = strconv.ParseInt(r.FormValue("committee"), 10, 64)
@@ -261,6 +270,10 @@ func (c *Controller) meetingStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	committee, err := models.LoadCommittee(ctx, c.db, committeeID)
+	if !check(w, r, err) {
+		return
+	}
+	alreadyRunning, err := models.HasCommitteeRunningMeeting(ctx, c.db, committeeID)
 	if !check(w, r, err) {
 		return
 	}
@@ -305,17 +318,23 @@ func (c *Controller) meetingStatus(w http.ResponseWriter, r *http.Request) {
 	})
 
 	data := templateData{
-		"Session":   auth.SessionFromContext(ctx),
-		"User":      auth.UserFromContext(ctx),
-		"Meeting":   meeting,
-		"Members":   members,
-		"Attendees": attendees,
-		"Quorum":    &quorum,
-		"Count":     &count,
-		"Committee": committee,
+		"Session":        auth.SessionFromContext(ctx),
+		"User":           auth.UserFromContext(ctx),
+		"Meeting":        meeting,
+		"Members":        members,
+		"Attendees":      attendees,
+		"Quorum":         &quorum,
+		"Count":          &count,
+		"Committee":      committee,
+		"AlreadyRunning": alreadyRunning,
+	}
+	if errMsg != "" {
+		data.error(errMsg)
 	}
 	check(w, r, c.tmpls.ExecuteTemplate(w, "meeting_status.tmpl", data))
 }
+
+var errAlreadyRunning = errors.New("already running")
 
 func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) {
 	var (
@@ -327,13 +346,21 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 	if !checkParam(w, err1, err2, err3) {
 		return
 	}
-	// In case we
-	if meetingStatus == models.MeetingConcluded {
-		var err error
-		if !check(w, r, err) {
-			return
+
+	// Extra checks before we try to change the status.
+	precondition := func(ctx context.Context, tx *sql.Tx) error {
+		if meetingStatus == models.MeetingRunning {
+			already, err := models.HasCommitteeRunningMeetingTx(ctx, tx, committeeID)
+			if err != nil {
+				return err
+			}
+			if already {
+				return errAlreadyRunning
+			}
 		}
+		return nil
 	}
+
 	// This is only called if the update was successful.
 	onSuccess := func(ctx context.Context, tx *sql.Tx) error {
 		if meetingStatus != models.MeetingConcluded {
@@ -456,11 +483,17 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 		}
 		return nil
 	}
-	if !check(w, r, models.UpdateMeetingStatus(
+
+	switch err := models.UpdateMeetingStatus(
 		ctx, c.db,
 		meetingID, committeeID, meetingStatus,
+		precondition,
 		onSuccess,
-	)) {
+	); {
+	case errors.Is(err, errAlreadyRunning):
+		c.meetingStatusError(w, r, "Already have a running meeting in this committee.")
+		return
+	case !check(w, r, err):
 		return
 	}
 	c.meetingStatus(w, r)

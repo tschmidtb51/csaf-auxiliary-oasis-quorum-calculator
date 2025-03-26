@@ -317,13 +317,19 @@ func UpdateMeetingStatus(
 	ctx context.Context, db *database.Database,
 	meetingID, committeeID int64,
 	meetingStatus MeetingStatus,
-	onSuccess func(context.Context, *sql.Tx) error,
+	precondition, onSuccess func(context.Context, *sql.Tx) error,
 ) error {
 	tx, err := db.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
+
+	if precondition != nil {
+		if err := precondition(ctx, tx); err != nil {
+			return err
+		}
+	}
 
 	const updateSQL = `UPDATE meetings SET status = ? ` +
 		`WHERE id = ? AND committees_id = ? ` +
@@ -341,7 +347,7 @@ func UpdateMeetingStatus(
 	if err != nil {
 		return fmt.Errorf("cannot determine meeting status change: %w", err)
 	}
-	if n == 1 {
+	if n == 1 && onSuccess != nil {
 		if err := onSuccess(ctx, tx); err != nil {
 			return nil
 		}
@@ -488,4 +494,33 @@ func PreviousMeetingTx(
 		return 0, false, fmt.Errorf("find last meeting failed: %w", err)
 	}
 	return prevID, true, nil
+}
+
+// HasCommitteeRunningMeeting checks if a committee has a running meeting.
+func HasCommitteeRunningMeeting(
+	ctx context.Context,
+	db *database.Database,
+	committeeID int64,
+) (bool, error) {
+	tx, err := db.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback()
+	return HasCommitteeRunningMeetingTx(ctx, tx, committeeID)
+}
+
+// HasCommitteeRunningMeetingTx checks if a committee has a running meeting.
+func HasCommitteeRunningMeetingTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	committeeID int64,
+) (bool, error) {
+	const existsSQL = `SELECT EXISTS(SELECT 1 FROM meetings ` +
+		`WHERE committees_id = ? AND status = 1)` // MeetingRunning
+	var exists bool
+	if err := tx.QueryRowContext(ctx, existsSQL, committeeID).Scan(&exists); err != nil {
+		return false, fmt.Errorf("query running meeting exists failed: %w", err)
+	}
+	return exists, nil
 }
