@@ -459,6 +459,7 @@ func MeetingAttendeesTx(
 		if err := rows.Scan(&nickname, &voting); err != nil {
 			return nil, fmt.Errorf("scanning meeting attendees failed: %w", err)
 		}
+		attendees[nickname] = voting
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("lading meeting attendees failed: %w", err)
