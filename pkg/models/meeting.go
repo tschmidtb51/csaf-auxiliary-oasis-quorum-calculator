@@ -39,6 +39,7 @@ const (
 type Meeting struct {
 	ID          int64
 	CommitteeID int64
+	Gathering   bool
 	Status      MeetingStatus
 	StartTime   time.Time
 	StopTime    time.Time
@@ -166,11 +167,12 @@ func LoadMeetingTx(
 		ID:          meetingID,
 		CommitteeID: committeeID,
 	}
-	const loadSQL = `SELECT status, start_time, stop_time, description ` +
+	const loadSQL = `SELECT status, gathering, start_time, stop_time, description ` +
 		`FROM meetings ` +
 		`WHERE id = ? AND committees_id = ?`
 	switch err := tx.QueryRowContext(ctx, loadSQL, meetingID, committeeID).Scan(
 		&meeting.Status,
+		&meeting.Gathering,
 		&meeting.StartTime,
 		&meeting.StopTime,
 		&meeting.Description,
@@ -194,7 +196,7 @@ func LoadMeetings(
 		return nil, err
 	}
 	defer tx.Rollback()
-	const loadSQL = `SELECT id, status, start_time, stop_time, description ` +
+	const loadSQL = `SELECT id, status, gathering, start_time, stop_time, description ` +
 		`FROM meetings ` +
 		`WHERE committees_id = ? ` +
 		`ORDER BY unixepoch(start_time)`
@@ -216,6 +218,7 @@ func LoadMeetings(
 				if err := rows.Scan(
 					&meeting.ID,
 					&meeting.Status,
+					&meeting.Gathering,
 					&meeting.StartTime,
 					&meeting.StopTime,
 					&meeting.Description,
@@ -262,10 +265,11 @@ func DeleteMeetingsByID(
 // StoreNew stores a new meeting into the database.
 func (m *Meeting) StoreNew(ctx context.Context, db *database.Database) error {
 	const insertSQL = `INSERT INTO meetings ` +
-		`(committees_id, start_time, stop_time, description) ` +
-		`VALUES (?, ?, ?, ?) ` +
+		`(gathering, committees_id, start_time, stop_time, description) ` +
+		`VALUES (?, ?, ?, ?, ?) ` +
 		`RETURNING id`
 	if err := db.DB.QueryRowContext(ctx, insertSQL,
+		m.Gathering,
 		m.CommitteeID,
 		m.StartTime,
 		m.StopTime,
@@ -279,11 +283,13 @@ func (m *Meeting) StoreNew(ctx context.Context, db *database.Database) error {
 // Store updates a meeting in the database.
 func (m *Meeting) Store(ctx context.Context, db *database.Database) error {
 	const updateSQL = `UPDATE meetings SET ` +
+		`gathering = ?, ` +
 		`start_time = ?,` +
 		`stop_time = ?,` +
 		`description = ? ` +
 		`WHERE id = ? AND committees_id = ?`
 	if _, err := db.DB.ExecContext(ctx, updateSQL,
+		m.Gathering,
 		m.StartTime,
 		m.StopTime,
 		m.Description,
@@ -484,6 +490,7 @@ func PreviousMeetingTx(
 	const prevSQL = `SELECT m2.id FROM meetings m1, meetings m2 ` +
 		`WHERE m1.id = ? ` +
 		`AND m1.committees_id = m2.committees_id ` +
+		`AND NOT m2.gathering ` +
 		`AND m2.status = 2 ` + // MeetingConcluded
 		`AND unixepoch(m2.start_time) < unixepoch(m1.start_time) ` +
 		`ORDER by unixepoch(m2.start_time) DESC LIMIT 1`
@@ -544,4 +551,18 @@ func HasConcludedMeetingNewerThanTx(
 		return false, fmt.Errorf("query newer concluded meeting exists failed: %w", err)
 	}
 	return exists, nil
+}
+
+// IsGatheringMeeting checks if a given meeting is a gathering.
+func IsGatheringMeeting(
+	ctx context.Context,
+	tx *sql.Tx,
+	meetingID int64,
+) (bool, error) {
+	const gatheringSQL = `SELECT gathering FROM meetings WHERE id = ?`
+	var gathering bool
+	if err := tx.QueryRowContext(ctx, gatheringSQL, meetingID).Scan(&gathering); err != nil {
+		return false, fmt.Errorf("query gathering failed: %w", err)
+	}
+	return gathering, nil
 }

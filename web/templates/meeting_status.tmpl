@@ -11,6 +11,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ template "error" . }}
 {{- $sessionID      := .Session.ID }}
 {{- $meetingID      := .Meeting.ID }}
+{{- $gathering      := .Meeting.Gathering }}
 {{- $attendees      := .Attendees }}
 {{- $committeeID    := .Committee.ID }}
 {{- $committeeName  := .Committee.Name }}
@@ -51,7 +52,8 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ end }}
 {{ end }}
 <br>
-
+{{ if $gathering }}<strong>This is only a gathering meeting!<strong>
+{{ else }}
 <strong>Quorum</strong>: {{ .Quorum.Number }} ({{ if not .Quorum.Reached }}not {{ end }}reached)<br>
 <table>
   <thead>
@@ -83,6 +85,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   </tr>
   </tbody>
 </table>
+{{ end }}
 {{ if .Members }}
 {{- $statusMember     := MemberStatus "member" }}
 {{- $statusVoting     := MemberStatus "voting" }}
@@ -99,9 +102,11 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <th>First name</th>
     <th>Last name</th>
     <th>Login</th>
+{{ if not $gathering }}
     <th>Non-Voting<br>Member</th>
     <th>Voting<br>Member</th>
     <th>Persistent<br>Non-Voting<br>Member</th>
+{{ end }}
   </tr>
 </thead>
 <tbody>
@@ -117,10 +122,12 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <td>{{ if ne .Firstname nil }}{{ .Firstname }}{{ end }}</td>
     <td>{{ if ne .Lastname nil }}{{ .Lastname }}{{ end }}</td>
     <td>{{ .Nickname }}</td>
+{{ if not $gathering }}
     {{ $ms := .FindMembership $committeeName }}
     <td>{{ if eq $ms.Status $statusMember }}&check;{{ end }}</td>
     <td>{{ if eq $ms.Status $statusVoting }}&check;{{ end }}</td>
     <td>{{ if eq $ms.Status $statusNoneVoting }}&check;{{ end }}</td>
+{{ end }}
   </tr>
 {{ end }}
 </tbody>
