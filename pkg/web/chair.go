@@ -334,7 +334,10 @@ func (c *Controller) meetingStatusError(
 	check(w, r, c.tmpls.ExecuteTemplate(w, "meeting_status.tmpl", data))
 }
 
-var errAlreadyRunning = errors.New("already running")
+var (
+	errAlreadyRunning = errors.New("already running")
+	errNewerConcluded = errors.New("newer concluded")
+)
 
 func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) {
 	var (
@@ -349,13 +352,24 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 
 	// Extra checks before we try to change the status.
 	precondition := func(ctx context.Context, tx *sql.Tx) error {
-		if meetingStatus == models.MeetingRunning {
-			already, err := models.HasCommitteeRunningMeetingTx(ctx, tx, committeeID)
-			if err != nil {
+		switch meetingStatus {
+		case models.MeetingRunning:
+			// We should not start a meeting if one is already running.
+			switch has, err := models.HasCommitteeRunningMeetingTx(ctx, tx, committeeID); {
+			case err != nil:
 				return err
-			}
-			if already {
+			case has:
 				return errAlreadyRunning
+			}
+		case models.MeetingConcluded:
+			// To ensure the correct time order of conclusions
+			// prevent that we conclude a meeting if a newer
+			// one already has been concluded.
+			switch has, err := models.HasConcludedMeetingNewerThanTx(ctx, tx, meetingID); {
+			case err != nil:
+				return err
+			case has:
+				return errNewerConcluded
 			}
 		}
 		return nil
@@ -492,6 +506,9 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 	); {
 	case errors.Is(err, errAlreadyRunning):
 		c.meetingStatusError(w, r, "Already have a running meeting in this committee.")
+		return
+	case errors.Is(err, errNewerConcluded):
+		c.meetingStatusError(w, r, "Already have a concluded meeting that is newer.")
 		return
 	case !check(w, r, err):
 		return

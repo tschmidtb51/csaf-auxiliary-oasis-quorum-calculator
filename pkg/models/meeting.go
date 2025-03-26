@@ -525,3 +525,23 @@ func HasCommitteeRunningMeetingTx(
 	}
 	return exists, nil
 }
+
+// HasConcludedMeetingNewerThanTx checks if there is a meeting
+// in the same committee that is newer and concluded.
+func HasConcludedMeetingNewerThanTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	meetingID int64,
+) (bool, error) {
+	const existsSQL = `SELECT EXISTS (SELECT 1 FROM meetings m1, meetings m2 ` +
+		`WHERE m1.id = ? ` +
+		`AND m1.committees_id = m2.committees_id ` +
+		`AND m1.id <> m2.id ` +
+		`AND m2.status = 2 ` + // MeetingConcluded
+		`AND unixepoch(m2.start_time) > unixepoch(m1.start_time))`
+	var exists bool
+	if err := tx.QueryRowContext(ctx, existsSQL, meetingID).Scan(&exists); err != nil {
+		return false, fmt.Errorf("query newer concluded meeting exists failed: %w", err)
+	}
+	return exists, nil
+}
