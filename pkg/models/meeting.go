@@ -244,7 +244,8 @@ func DeleteMeetingsByID(
 		return err
 	}
 	defer tx.Rollback()
-	const deleteSQL = `DELETE FROM meetings WHERE id = ? AND committees_id = ?`
+	const deleteSQL = `DELETE FROM meetings ` +
+		`WHERE id = ? AND committees_id = ? AND status <> 2` // MeetingConcluded
 	stmt, err := tx.PrepareContext(ctx, deleteSQL)
 	if err != nil {
 		return fmt.Errorf("preparing delete meetings failed: %w", err)

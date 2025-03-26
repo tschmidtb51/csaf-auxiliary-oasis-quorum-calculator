@@ -37,7 +37,9 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   {{ range $meetings.Filter $filter }}
     <tr>
       <td>
+        {{- if ne .Status $meetingConcluded -}}
         <input type="checkbox" name="meetings" value="{{ .ID }}"></td>
+        {{- end -}}
       <td>
         <a href="/meeting_status?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}">
         {{- if      eq .Status $meetingOnHold }}Waiting
