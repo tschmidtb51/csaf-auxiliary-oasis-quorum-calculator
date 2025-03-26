@@ -44,7 +44,7 @@ func Filter[S any](seq iter.Seq[S], cond func(S) bool) iter.Seq[S] {
 func Attribute[S, A any](seq iter.Seq[S], a A) iter.Seq2[S, A] {
 	return func(yield func(S, A) bool) {
 		for s := range seq {
-			if yield(s, a) {
+			if !yield(s, a) {
 				return
 			}
 		}
@@ -56,7 +56,7 @@ func Join2[K, V any](seqs ...iter.Seq2[K, V]) iter.Seq2[K, V] {
 	return func(yield func(K, V) bool) {
 		for _, seq := range seqs {
 			for k, v := range seq {
-				if yield(k, v) {
+				if !yield(k, v) {
 					return
 				}
 			}
