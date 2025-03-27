@@ -32,6 +32,7 @@ type UserStatus struct {
 	Status   MemberStatus
 }
 
+// MembershipHistory contains the membership changes.
 type MembershipHistory struct {
 	Time  time.Time
 	Users []UserStatus
