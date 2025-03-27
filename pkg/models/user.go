@@ -9,6 +9,7 @@
 package models
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
@@ -128,6 +129,16 @@ func (ms MemberStatus) String() string {
 	default:
 		return fmt.Sprintf("unknown member status (%d)", ms)
 	}
+}
+
+// Compare compares this user with the other by its
+// firstname, lastname and nickname.
+func (u User) Compare(o *User) int {
+	return cmp.Or(
+		misc.CompareEmptyStrings(u.Firstname, o.Firstname),
+		misc.CompareEmptyStrings(u.Lastname, o.Lastname),
+		strings.Compare(u.Nickname, o.Nickname),
+	)
 }
 
 // CommitteeByID return the committee for a given id.

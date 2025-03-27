@@ -9,7 +9,6 @@
 package models
 
 import (
-	"cmp"
 	"context"
 	"database/sql"
 	"errors"
@@ -683,13 +682,7 @@ func LoadMeetingsOverview(
 	}
 
 	// Sort user by firstname, lastname and nickname.
-	slices.SortFunc(users, func(a, b *User) int {
-		return cmp.Or(
-			misc.CompareEmptyStrings(a.Firstname, b.Firstname),
-			misc.CompareEmptyStrings(a.Lastname, b.Lastname),
-			strings.Compare(a.Nickname, b.Nickname),
-		)
-	})
+	slices.SortFunc(users, (*User).Compare)
 	overview := &MeetingsOverview{
 		Data:  data,
 		Users: users,

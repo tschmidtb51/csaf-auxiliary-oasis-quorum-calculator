@@ -9,7 +9,6 @@
 package web
 
 import (
-	"cmp"
 	"context"
 	"database/sql"
 	"errors"
@@ -313,13 +312,7 @@ func (c *Controller) meetingStatusError(
 		NonVoting:       numNonVoters,
 	}
 
-	slices.SortFunc(members, func(a, b *models.User) int {
-		return cmp.Or(
-			misc.CompareEmptyStrings(a.Firstname, b.Firstname),
-			misc.CompareEmptyStrings(a.Lastname, b.Lastname),
-			strings.Compare(a.Nickname, b.Nickname),
-		)
-	})
+	slices.SortFunc(members, (*models.User).Compare)
 
 	data := templateData{
 		"Session":        auth.SessionFromContext(ctx),
