@@ -103,12 +103,14 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 		description = nilString(strings.TrimSpace(r.FormValue("description")))
 		startTime   = r.FormValue("start_time")
 		duration    = r.FormValue("duration")
+		gathering   = r.FormValue("gathering") != ""
 		s, errS     = time.ParseInLocation("2006-01-02T15:04", startTime, time.UTC)
 		d, errD     = parseDuration(duration)
 		ctx         = r.Context()
 	)
 	meeting := models.Meeting{
 		CommitteeID: committee,
+		Gathering:   gathering,
 		Description: description,
 	}
 	data := templateData{
@@ -182,6 +184,7 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		description       = nilString(strings.TrimSpace(r.FormValue("description")))
 		startTime         = r.FormValue("start_time")
 		duration          = r.FormValue("duration")
+		gathering         = r.FormValue("gathering") != ""
 		s, errS           = time.ParseInLocation("2006-01-02T15:04", startTime, time.UTC)
 		d, errD           = parseDuration(duration)
 		ctx               = r.Context()
@@ -231,6 +234,7 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		check(w, r, c.tmpls.ExecuteTemplate(w, "meeting_edit.tmpl", data))
 		return
 	}
+	meeting.Gathering = gathering
 	if !check(w, r, meeting.Store(ctx, c.db)) {
 		return
 	}
@@ -429,6 +433,14 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 	// This is only called if the update was successful.
 	onSuccess := func(ctx context.Context, tx *sql.Tx) error {
 		if meetingStatus != models.MeetingConcluded {
+			return nil
+		}
+		gathering, err := models.IsGatheringMeetingTx(ctx, tx, meetingID)
+		if err != nil {
+			return err
+		}
+		// Gatherings have no influence on voting.
+		if gathering {
 			return nil
 		}
 		prevMeetingID, hasPrev, err := models.PreviousMeetingTx(ctx, tx, meetingID)
