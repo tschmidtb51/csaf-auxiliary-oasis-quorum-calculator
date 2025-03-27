@@ -62,10 +62,13 @@ type MemberCount struct {
 	NonVoting       int
 }
 
+// Attendees is a map from nicknames to (attended, voting rights).
+type Attendees map[string]bool
+
 // MeetingData captures the main data of a meeting.
 type MeetingData struct {
 	Meeting   *Meeting
-	Attendees map[string]bool
+	Attendees Attendees
 }
 
 // MeetingsOverview the an overview over a list of meetings.
@@ -77,6 +80,17 @@ type MeetingsOverview struct {
 
 // Meetings is a slice of meetings.
 type Meetings []*Meeting
+
+// Attended checks if a given user attended.
+func (a Attendees) Attended(nickname string) bool {
+	_, ok := a[nickname]
+	return ok
+}
+
+// Voting checks if a given has voting rights.
+func (a Attendees) Voting(nickname string) bool {
+	return a[nickname]
+}
 
 // String implements [fmt.Stringer].
 func (m MeetingStatus) String() string {
@@ -359,10 +373,10 @@ func (m *Meeting) Store(ctx context.Context, db *database.Database) error {
 }
 
 // Attendees loads the nicknames from the database which attend this meeting.
-func (m *Meeting) Attendees(ctx context.Context, db *database.Database) (map[string]bool, error) {
+func (m *Meeting) Attendees(ctx context.Context, db *database.Database) (Attendees, error) {
 	const loadAttendeesSQL = `SELECT nickname FROM attendees ` +
 		`WHERE meetings_id = ?`
-	attendees := make(map[string]bool)
+	attendees := make(Attendees)
 	rows, err := db.DB.QueryContext(ctx, loadAttendeesSQL, m.ID)
 	if err != nil {
 		return nil, fmt.Errorf("querying attendees failed: %w", err)
@@ -514,7 +528,7 @@ func MeetingAttendeesTx(
 	ctx context.Context,
 	tx *sql.Tx,
 	meetingID int64,
-) (map[string]bool, error) {
+) (Attendees, error) {
 	const attendeesSQL = `SELECT nickname, voting_allowed FROM attendees ` +
 		`WHERE meetings_id = ?`
 	rows, err := tx.QueryContext(ctx, attendeesSQL, meetingID)
@@ -522,7 +536,7 @@ func MeetingAttendeesTx(
 		return nil, fmt.Errorf("loading meeting attendees failed: %w", err)
 	}
 	defer rows.Close()
-	attendees := map[string]bool{}
+	attendees := Attendees{}
 	for rows.Next() {
 		var (
 			nickname string
@@ -684,8 +698,9 @@ func LoadMeetingsOverview(
 	// Sort user by firstname, lastname and nickname.
 	slices.SortFunc(users, (*User).Compare)
 	overview := &MeetingsOverview{
-		Data:  data,
-		Users: users,
+		Data:           data,
+		Users:          users,
+		UsersHistories: histories,
 	}
 	return overview, nil
 }

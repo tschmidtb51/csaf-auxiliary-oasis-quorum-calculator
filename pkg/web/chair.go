@@ -567,3 +567,30 @@ func (c *Controller) meetingAttendStore(w http.ResponseWriter, r *http.Request) 
 	}
 	c.meetingStatus(w, r)
 }
+
+func (c *Controller) meetingsOverview(w http.ResponseWriter, r *http.Request) {
+	var (
+		committeeID, err = strconv.ParseInt(r.FormValue("committee"), 10, 64)
+		ctx              = r.Context()
+	)
+	if !checkParam(w, err) {
+		return
+	}
+	committee, err := models.LoadCommittee(ctx, c.db, committeeID)
+	if !check(w, r, err) {
+		return
+	}
+	// Number of meetings to load.
+	const limit = -1
+	overview, err := models.LoadMeetingsOverview(ctx, c.db, committeeID, limit)
+	if !check(w, r, err) {
+		return
+	}
+	data := templateData{
+		"Session":   auth.SessionFromContext(ctx),
+		"User":      auth.UserFromContext(ctx),
+		"Committee": committee,
+		"Overview":  overview,
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "meetings_overview.tmpl", data))
+}
