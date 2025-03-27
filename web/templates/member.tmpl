@@ -31,14 +31,13 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     </thead>
     <tbody>
       {{ range $meetings.Filter $allRunningFilter }}
-        {{- $gathering   := .Gathering }}
         {{- $committeeID := .CommitteeID }}
         <tr>
            <td>
               {{ $att := index $attended .ID }}
               <a href="/meeting_status?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}"
                  ><strong>{{ ($user.CommitteeByID $committeeID).Name }}</strong></a>
-              {{- if and (not $gathering) (eq .Status $meetingRunning) }}
+              {{- if eq .Status $meetingRunning }}
                 {{ if $att }}<a href="/member_attend?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}&attend=false">
                 <mark>Click&nbsp;to&nbsp;skip!</mark></a>
                 {{- else -}}
@@ -81,13 +80,12 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <tr>
       <td>
         {{- $att := index $attended .ID }}
-        {{- $gathering := .Gathering }}
         <a href="/meeting_status?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}">
           {{- if      eq .Status $meetingOnHold }}Waiting{{ if $att }} (Attending){{ end }}
           {{- else if eq .Status $meetingRunning }}<strong>Running</strong>
           {{- else }}Concluded{{ if $att }} (Attended){{ end }}{{ end -}}
         </a>
-        {{- if and (not $gathering) (eq .Status $meetingRunning) }}
+        {{- if eq .Status $meetingRunning }}
           {{ if $att }}<a href="/member_attend?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}&attend=false"><mark>Click&nbsp;to&nbsp;skip!</mark></a>
           {{- else }}<a href="/member_attend?SESSIONID={{ $sessionID }}&meeting={{ .ID }}&committee={{ $committeeID }}&attend=true"><mark>Click&nbsp;to&nbsp;join!</mark></a>{{ end -}}
         {{- end }}

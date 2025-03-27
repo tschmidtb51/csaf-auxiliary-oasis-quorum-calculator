@@ -384,7 +384,7 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 		if meetingStatus != models.MeetingConcluded {
 			return nil
 		}
-		gathering, err := models.IsGatheringMeeting(ctx, tx, meetingID)
+		gathering, err := models.IsGatheringMeetingTx(ctx, tx, meetingID)
 		if err != nil {
 			return err
 		}

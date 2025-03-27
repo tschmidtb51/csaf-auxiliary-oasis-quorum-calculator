@@ -553,8 +553,8 @@ func HasConcludedMeetingNewerThanTx(
 	return exists, nil
 }
 
-// IsGatheringMeeting checks if a given meeting is a gathering.
-func IsGatheringMeeting(
+// IsGatheringMeetingTx checks if a given meeting is a gathering.
+func IsGatheringMeetingTx(
 	ctx context.Context,
 	tx *sql.Tx,
 	meetingID int64,
