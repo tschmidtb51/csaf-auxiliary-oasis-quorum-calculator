@@ -42,6 +42,8 @@ const (
 	Voting
 	// NoneVoting is a persistent none voter.
 	NoneVoting
+	// StatusUnchanged is an unchanged member status.
+	StatusUnchanged
 )
 
 // Membership is the membership of a user in a committee.

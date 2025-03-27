@@ -13,6 +13,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/database"
 )
@@ -22,6 +24,18 @@ type Committee struct {
 	ID          int64
 	Name        string
 	Description *string
+}
+
+// UserStatus represents a membership status.
+type UserStatus struct {
+	Nickname string
+	Status   MemberStatus
+}
+
+// MembershipHistory contains the membership changes.
+type MembershipHistory struct {
+	Time  time.Time
+	Users []UserStatus
 }
 
 // DeleteCommitteesByID deletes a list of committees by their ids.
@@ -118,6 +132,42 @@ func LoadCommittee(ctx context.Context, db *database.Database, id int64) (*Commi
 		return nil, fmt.Errorf("loading committee failed: %w", err)
 	}
 	return &committee, nil
+}
+
+// LoadMembershipHistory loads the membership history of the committee.
+func LoadMembershipHistory(ctx context.Context, db *database.Database, id int64, limit int64) ([]*MembershipHistory, error) {
+	const loadSQL = `SELECT since, GROUP_CONCAT(status || ':' || nickname) FROM member_history WHERE committees_id = ?` +
+		` GROUP BY since` +
+		` ORDER BY unixepoch(since) DESC LIMIT ?`
+	rows, err := db.DB.QueryContext(ctx, loadSQL, id, limit)
+	if err != nil {
+		return nil, fmt.Errorf("loading membership history failed: %w", err)
+	}
+	defer rows.Close()
+	var membershipHistory []*MembershipHistory
+	for rows.Next() {
+		var t time.Time
+		var userStatusStr string
+
+		if err := rows.Scan(&t, &userStatusStr); err != nil {
+			return nil, fmt.Errorf("scanning membership history failed: %w", err)
+		}
+		entries := []UserStatus{}
+		for _, part := range strings.Split(userStatusStr, "|") {
+			var nickname string
+			var status MemberStatus
+			fmt.Sscanf(part, "%d:%s", &status, &nickname)
+			entries = append(entries, UserStatus{
+				Nickname: nickname,
+				Status:   status,
+			})
+		}
+		membershipHistory = append(membershipHistory, &MembershipHistory{
+			Time:  t,
+			Users: entries,
+		})
+	}
+	return membershipHistory, nil
 }
 
 // Store stores a committee into the database.
