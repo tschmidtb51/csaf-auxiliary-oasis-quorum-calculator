@@ -63,6 +63,7 @@ type Attendees map[string]bool
 type MeetingData struct {
 	Meeting   *Meeting
 	Attendees Attendees
+	Quorum    *Quorum
 }
 
 // MeetingsOverview the an overview over a list of meetings.
@@ -697,6 +698,28 @@ func LoadMeetingsOverview(
 			return nil, err
 		}
 		users = append(users, user)
+	}
+
+	// Calculate the quora
+	for _, d := range data {
+		meeting := d.Meeting
+		if meeting.Gathering {
+			continue
+		}
+		var voting, attending int
+		for nickname := range neededUsers {
+			history := histories[nickname]
+			if history.Status(meeting.StopTime) == Voting {
+				voting++
+				if d.Attendees.Attended(nickname) {
+					attending++
+				}
+			}
+		}
+		d.Quorum = &Quorum{
+			Voting:          voting,
+			AttendingVoting: attending,
+		}
 	}
 
 	// Sort user by firstname, lastname and nickname.

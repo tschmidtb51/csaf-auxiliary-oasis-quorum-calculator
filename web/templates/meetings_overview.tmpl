@@ -56,7 +56,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- $history   := index $histories $nickname }}
 <td>
 {{ if $attendees.Attended $nickname }}&check;{{
-   else if and (eq $m.Status $concluded) 
+   else if and (eq $m.Status $concluded)
                (eq ($history.Status $m.StopTime) $voting) }}&#x1F6C7;
 {{ else if and (eq $m.Status $running)
                (eq ($history.Status $m.StopTime) $voting) }}&#x26A0;
@@ -65,6 +65,24 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- end }}
 </tr>
 {{ end }}
+<tr>
+  <td><strong>Quora:</strong></td>
+{{- range $d := $data }}
+{{- $m := $d.Meeting }}
+{{- $q := $d.Quorum }}
+  <td>
+{{- if $q }}
+{{-   if ne $m.Status $waiting }}
+{{-     if $q.Reached }}&check;
+{{-     else if eq $m.Status $running -}}&#x26A0;
+{{-     else }}&#x1F6C7;
+{{-     end }}
+{{-   end }}
+({{ $q.AttendingVoting }}: {{ $q.Number }})
+{{- end -}}
+  </td>
+{{- end }}
+</tr>
     </tbody>
   </table>
 </fieldset>
