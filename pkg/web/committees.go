@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/misc"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/models"
 )
 
@@ -71,7 +72,7 @@ func (c *Controller) committeeEditStore(w http.ResponseWriter, r *http.Request) 
 			committee.Name = name
 			changed = true
 		}
-		nilChanger(&changed, &committee.Description, description)
+		misc.NilChanger(&changed, &committee.Description, description)
 	}
 	if changed && !check(w, r, committee.Store(ctx, c.db)) {
 		return
@@ -96,7 +97,7 @@ func (c *Controller) committees(w http.ResponseWriter, r *http.Request) {
 func (c *Controller) committeesStore(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("delete") != "" {
 		committees := r.Form["committees"]
-		if ids := int64sFromStrings(committees); len(ids) > 0 &&
+		if ids := misc.Int64sFromStrings(committees); len(ids) > 0 &&
 			!check(w, r, models.DeleteCommitteesByID(r.Context(), c.db, ids...)) {
 			return
 		}
@@ -116,7 +117,7 @@ func (c *Controller) committeeCreate(w http.ResponseWriter, r *http.Request) {
 func (c *Controller) committeeStore(w http.ResponseWriter, r *http.Request) {
 	var (
 		name        = strings.TrimSpace(r.FormValue("name"))
-		description = nilString(strings.TrimSpace(r.FormValue("description")))
+		description = misc.NilString(strings.TrimSpace(r.FormValue("description")))
 		ctx         = r.Context()
 	)
 	data := templateData{

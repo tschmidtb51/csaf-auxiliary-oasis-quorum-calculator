@@ -9,14 +9,12 @@
 package web
 
 import (
-	"cmp"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -100,7 +98,7 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	var (
-		description = nilString(strings.TrimSpace(r.FormValue("description")))
+		description = misc.NilString(strings.TrimSpace(r.FormValue("description")))
 		startTime   = r.FormValue("start_time")
 		duration    = r.FormValue("duration")
 		gathering   = r.FormValue("gathering") != ""
@@ -181,7 +179,7 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 	var (
 		meetingID, err1   = strconv.ParseInt(r.FormValue("meeting"), 10, 64)
 		committeeID, err2 = strconv.ParseInt(r.FormValue("committee"), 10, 64)
-		description       = nilString(strings.TrimSpace(r.FormValue("description")))
+		description       = misc.NilString(strings.TrimSpace(r.FormValue("description")))
 		startTime         = r.FormValue("start_time")
 		duration          = r.FormValue("duration")
 		gathering         = r.FormValue("gathering") != ""
@@ -239,56 +237,6 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.chair(w, r)
-}
-
-func (c *Controller) memberStatus(w http.ResponseWriter, r *http.Request) {
-	var (
-		committeeID, err1 = strconv.ParseInt(r.FormValue("committee"), 10, 64)
-		ctx               = r.Context()
-	)
-	if !checkParam(w, err1) {
-		return
-	}
-
-	members, err := models.LoadCommitteeUsers(ctx, c.db, committeeID)
-	if !check(w, r, err) {
-		return
-	}
-	committee, err := models.LoadCommittee(ctx, c.db, committeeID)
-	if !check(w, r, err) {
-		return
-	}
-
-	membershipHistory, err := models.LoadMembershipHistory(ctx, c.db, committeeID, 10)
-	if !check(w, r, err) {
-		return
-	}
-
-	// Fill empty entries
-	for _, entry := range membershipHistory {
-		for _, member := range members {
-			if !slices.ContainsFunc(entry.Users, func(status models.UserStatus) bool {
-				return status.Nickname == member.Nickname
-			}) {
-				entry.Users = append(entry.Users, models.UserStatus{
-					Nickname: member.Nickname,
-					Status:   models.StatusUnchanged,
-				})
-			}
-		}
-		sort.Slice(entry.Users, func(i, j int) bool {
-			return entry.Users[i].Nickname < entry.Users[j].Nickname
-		})
-	}
-
-	data := templateData{
-		"Session":           auth.SessionFromContext(ctx),
-		"User":              auth.UserFromContext(ctx),
-		"Committee":         committee,
-		"Members":           members,
-		"MembershipHistory": membershipHistory,
-	}
-	check(w, r, c.tmpls.ExecuteTemplate(w, "member_history.tmpl", data))
 }
 
 func (c *Controller) meetingStatus(w http.ResponseWriter, r *http.Request) {
@@ -352,11 +300,6 @@ func (c *Controller) meetingStatusError(
 	}
 
 	quorum := models.Quorum{
-		Number:  1 + numVoters/2,
-		Reached: attendingVoters >= (1 + numVoters/2),
-	}
-
-	count := models.MemberCount{
 		Total:           len(members),
 		Member:          numMembers,
 		Voting:          numVoters,
@@ -364,13 +307,7 @@ func (c *Controller) meetingStatusError(
 		NonVoting:       numNonVoters,
 	}
 
-	slices.SortFunc(members, func(a, b *models.User) int {
-		return cmp.Or(
-			strings.Compare(emptyString(a.Firstname), emptyString(b.Firstname)),
-			strings.Compare(emptyString(a.Lastname), emptyString(b.Lastname)),
-			strings.Compare(a.Nickname, b.Nickname),
-		)
-	})
+	slices.SortFunc(members, (*models.User).Compare)
 
 	data := templateData{
 		"Session":        auth.SessionFromContext(ctx),
@@ -379,7 +316,6 @@ func (c *Controller) meetingStatusError(
 		"Members":        members,
 		"Attendees":      attendees,
 		"Quorum":         &quorum,
-		"Count":          &count,
 		"Committee":      committee,
 		"AlreadyRunning": alreadyRunning,
 	}
@@ -624,4 +560,31 @@ func (c *Controller) meetingAttendStore(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	c.meetingStatus(w, r)
+}
+
+func (c *Controller) meetingsOverview(w http.ResponseWriter, r *http.Request) {
+	var (
+		committeeID, err = strconv.ParseInt(r.FormValue("committee"), 10, 64)
+		ctx              = r.Context()
+	)
+	if !checkParam(w, err) {
+		return
+	}
+	committee, err := models.LoadCommittee(ctx, c.db, committeeID)
+	if !check(w, r, err) {
+		return
+	}
+	// Number of meetings to load.
+	const limit = -1
+	overview, err := models.LoadMeetingsOverview(ctx, c.db, committeeID, limit)
+	if !check(w, r, err) {
+		return
+	}
+	data := templateData{
+		"Session":   auth.SessionFromContext(ctx),
+		"User":      auth.UserFromContext(ctx),
+		"Committee": committee,
+		"Overview":  overview,
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "meetings_overview.tmpl", data))
 }

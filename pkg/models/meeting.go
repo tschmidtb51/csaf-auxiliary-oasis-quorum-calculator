@@ -16,6 +16,7 @@ import (
 	"iter"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -48,21 +49,53 @@ type Meeting struct {
 
 // Quorum is the quorum of this meeting.
 type Quorum struct {
-	Number  int
-	Reached bool
-}
-
-// MemberCount is the individual count of the roles.
-type MemberCount struct {
 	Total           int
-	Member          int
 	Voting          int
 	AttendingVoting int
 	NonVoting       int
+	Member          int
+}
+
+// Attendees is a map from nicknames to (attended, voting rights).
+type Attendees map[string]bool
+
+// MeetingData captures the main data of a meeting.
+type MeetingData struct {
+	Meeting   *Meeting
+	Attendees Attendees
+	Quorum    *Quorum
+}
+
+// MeetingsOverview the an overview over a list of meetings.
+type MeetingsOverview struct {
+	Data           []*MeetingData
+	UsersHistories UsersHistories
+	Users          []*User // Only basic user data, no memberships.
+}
+
+// Number is the number of voting members to reach the quorum.
+func (q *Quorum) Number() int {
+	return 1 + q.Voting/2
+}
+
+// Reached indicates that the quorum is reached.
+func (q *Quorum) Reached() bool {
+	return q.AttendingVoting >= q.Number()
 }
 
 // Meetings is a slice of meetings.
 type Meetings []*Meeting
+
+// Attended checks if a given user attended.
+func (a Attendees) Attended(nickname string) bool {
+	_, ok := a[nickname]
+	return ok
+}
+
+// Voting checks if a given has voting rights.
+func (a Attendees) Voting(nickname string) bool {
+	return a[nickname]
+}
 
 // String implements [fmt.Stringer].
 func (m MeetingStatus) String() string {
@@ -235,6 +268,51 @@ func LoadMeetings(
 	return meetings, nil
 }
 
+// LoadLastNMeetingsTx loads the last n meetings.
+// If n < 0 all meetings are loaded.
+// The returned meetings are sorted lastest first.
+func LoadLastNMeetingsTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	committeeID int64,
+	limit int64,
+) (Meetings, error) {
+	const loadSQL = `SELECT id, status, gathering, start_time, stop_time, description ` +
+		`FROM meetings ` +
+		`WHERE committees_id = ? ` +
+		`ORDER BY unixepoch(start_time) DESC `
+	var query string
+	if limit >= 0 {
+		query = query + " LIMIT " + strconv.FormatInt(limit, 10)
+	} else {
+		query = loadSQL
+	}
+	rows, err := tx.QueryContext(ctx, query, committeeID)
+	if err != nil {
+		return nil, fmt.Errorf("querying last n meetings failed: %w", err)
+	}
+	defer rows.Close()
+	var meetings Meetings
+	for rows.Next() {
+		var meeting Meeting
+		if err := rows.Scan(
+			&meeting.ID,
+			&meeting.Status,
+			&meeting.Gathering,
+			&meeting.StartTime,
+			&meeting.StopTime,
+			&meeting.Description,
+		); err != nil {
+			return nil, fmt.Errorf("scanning n last meetings failed: %w", err)
+		}
+		meetings = append(meetings, &meeting)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("querying last n meetings failed: %w", err)
+	}
+	return meetings, nil
+}
+
 // DeleteMeetingsByID removes meetings the database identified by their id.
 func DeleteMeetingsByID(
 	ctx context.Context,
@@ -300,10 +378,10 @@ func (m *Meeting) Store(ctx context.Context, db *database.Database) error {
 }
 
 // Attendees loads the nicknames from the database which attend this meeting.
-func (m *Meeting) Attendees(ctx context.Context, db *database.Database) (map[string]bool, error) {
+func (m *Meeting) Attendees(ctx context.Context, db *database.Database) (Attendees, error) {
 	const loadAttendeesSQL = `SELECT nickname FROM attendees ` +
 		`WHERE meetings_id = ?`
-	attendees := make(map[string]bool)
+	attendees := make(Attendees)
 	rows, err := db.DB.QueryContext(ctx, loadAttendeesSQL, m.ID)
 	if err != nil {
 		return nil, fmt.Errorf("querying attendees failed: %w", err)
@@ -455,7 +533,7 @@ func MeetingAttendeesTx(
 	ctx context.Context,
 	tx *sql.Tx,
 	meetingID int64,
-) (map[string]bool, error) {
+) (Attendees, error) {
 	const attendeesSQL = `SELECT nickname, voting_allowed FROM attendees ` +
 		`WHERE meetings_id = ?`
 	rows, err := tx.QueryContext(ctx, attendeesSQL, meetingID)
@@ -463,7 +541,7 @@ func MeetingAttendeesTx(
 		return nil, fmt.Errorf("loading meeting attendees failed: %w", err)
 	}
 	defer rows.Close()
-	attendees := map[string]bool{}
+	attendees := Attendees{}
 	for rows.Next() {
 		var (
 			nickname string
@@ -565,4 +643,91 @@ func IsGatheringMeetingTx(
 		return false, fmt.Errorf("query gathering failed: %w", err)
 	}
 	return gathering, nil
+}
+
+// LoadMeetingsOverview loads the last meetings and gathers infos about them.
+func LoadMeetingsOverview(
+	ctx context.Context,
+	db *database.Database,
+	committeeID int64,
+	limit int64,
+) (*MeetingsOverview, error) {
+	tx, err := db.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	meetings, err := LoadLastNMeetingsTx(ctx, tx, committeeID, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	histories, err := LoadUsersHistoriesTx(ctx, tx, committeeID)
+	if err != nil {
+		return nil, err
+	}
+
+	data := make([]*MeetingData, 0, len(meetings))
+
+	neededUsers := map[string]bool{}
+	for _, meeting := range meetings {
+		for nickname, history := range histories {
+			if history.Status(meeting.StopTime) != NoMember {
+				neededUsers[nickname] = true
+			}
+		}
+		attendees, err := MeetingAttendeesTx(ctx, tx, meeting.ID)
+		if err != nil {
+			return nil, err
+		}
+		for nickname := range attendees {
+			neededUsers[nickname] = true
+		}
+
+		data = append(data, &MeetingData{
+			Meeting:   meeting,
+			Attendees: attendees,
+		})
+	}
+
+	users := make([]*User, 0, len(neededUsers))
+	for nickname := range neededUsers {
+		user, err := loadBasicUserTx(ctx, tx, nickname)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	// Calculate the quora
+	for _, d := range data {
+		meeting := d.Meeting
+		if meeting.Gathering {
+			continue
+		}
+		var voting, attending int
+		for nickname := range neededUsers {
+			history := histories[nickname]
+			if history.Status(meeting.StopTime) == Voting {
+				voting++
+				if d.Attendees.Attended(nickname) {
+					attending++
+				}
+			}
+		}
+		d.Quorum = &Quorum{
+			Voting:          voting,
+			AttendingVoting: attending,
+		}
+	}
+
+	// Sort user by firstname, lastname and nickname.
+	slices.SortFunc(users, (*User).Compare)
+	overview := &MeetingsOverview{
+		Data:           data,
+		Users:          users,
+		UsersHistories: histories,
+	}
+	return overview, nil
 }

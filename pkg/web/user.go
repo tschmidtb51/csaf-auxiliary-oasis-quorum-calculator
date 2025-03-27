@@ -55,8 +55,8 @@ func (c *Controller) userStore(w http.ResponseWriter, r *http.Request) {
 		ctx             = r.Context()
 		user            = auth.UserFromContext(ctx)
 	)
-	nilChanger(&changed, &user.Firstname, firstname)
-	nilChanger(&changed, &user.Lastname, lastname)
+	misc.NilChanger(&changed, &user.Firstname, firstname)
+	misc.NilChanger(&changed, &user.Lastname, lastname)
 
 	data := templateData{
 		"Session": auth.SessionFromContext(ctx),
@@ -68,7 +68,7 @@ func (c *Controller) userStore(w http.ResponseWriter, r *http.Request) {
 	case password != "" && utf8.RuneCountInString(password) < 8:
 		data.error("Password too short (need at least 8 characters)")
 	case password != "":
-		nilChanger(&changed, &user.Password, password)
+		misc.NilChanger(&changed, &user.Password, password)
 	}
 	if changed && !check(w, r, user.Store(ctx, c.db)) {
 		return
@@ -106,8 +106,8 @@ func (c *Controller) userCreate(w http.ResponseWriter, r *http.Request) {
 func (c *Controller) userCreateStore(w http.ResponseWriter, r *http.Request) {
 	nuser := models.User{
 		Nickname:  strings.TrimSpace(r.FormValue("nickname")),
-		Firstname: nilString(strings.TrimSpace(r.FormValue("firstname"))),
-		Lastname:  nilString(strings.TrimSpace(r.FormValue("lastname"))),
+		Firstname: misc.NilString(strings.TrimSpace(r.FormValue("firstname"))),
+		Lastname:  misc.NilString(strings.TrimSpace(r.FormValue("lastname"))),
 		IsAdmin:   r.FormValue("admin") == "admin",
 	}
 	ctx := r.Context()
@@ -182,8 +182,8 @@ func (c *Controller) userEditStore(w http.ResponseWriter, r *http.Request) {
 		changed         = false
 	)
 
-	nilChanger(&changed, &user.Firstname, firstname)
-	nilChanger(&changed, &user.Lastname, lastname)
+	misc.NilChanger(&changed, &user.Firstname, firstname)
+	misc.NilChanger(&changed, &user.Lastname, lastname)
 
 	committees, err := models.LoadCommittees(ctx, c.db)
 	if !check(w, r, err) {
@@ -202,7 +202,7 @@ func (c *Controller) userEditStore(w http.ResponseWriter, r *http.Request) {
 	case password != "" && utf8.RuneCountInString(password) < 8:
 		data.error("Password too short (need at least 8 characters)")
 	case password != "":
-		nilChanger(&changed, &user.Password, password)
+		misc.NilChanger(&changed, &user.Password, password)
 	}
 	if changed && !check(w, r, user.Store(ctx, c.db)) {
 		return
