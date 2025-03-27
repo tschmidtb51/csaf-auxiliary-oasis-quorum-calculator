@@ -20,6 +20,7 @@ import (
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/database"
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/misc"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/models"
 )
 
@@ -46,7 +47,7 @@ var templateFuncs = template.FuncMap{
 	"Role":                      models.ParseRole,
 	"MemberStatus":              models.ParseMemberStatus,
 	"MeetingStatus":             models.ParseMeetingStatus,
-	"Shorten":                   shorten,
+	"Shorten":                   misc.Shorten,
 	"Args":                      args,
 	"CommitteeIDFilter":         models.CommitteeIDFilter,
 	"RunningFilter":             func() models.MeetingFilter { return models.RunningFilter },
@@ -141,7 +142,6 @@ func (c *Controller) Bind() http.Handler {
 		{"/meeting_create_store", mw.CommitteeRoles(c.meetingCreateStore, models.ChairRole)},
 		{"/meeting_edit", mw.CommitteeRoles(c.meetingEdit, models.ChairRole)},
 		{"/meeting_edit_store", mw.CommitteeRoles(c.meetingEditStore, models.ChairRole)},
-		{"/member_status", mw.CommitteeRoles(c.memberStatus, models.ChairRole, models.MemberRole)},
 		{"/meeting_status", mw.CommitteeRoles(c.meetingStatus, models.ChairRole, models.MemberRole)},
 		{"/meeting_status_store", mw.CommitteeRoles(c.meetingStatusStore, models.ChairRole)},
 		{"/meeting_attend_store", mw.CommitteeRoles(c.meetingAttendStore, models.ChairRole)},

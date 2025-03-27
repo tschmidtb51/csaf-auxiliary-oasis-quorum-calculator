@@ -42,8 +42,8 @@ const (
 	Voting
 	// NoneVoting is a persistent none voter.
 	NoneVoting
-	// StatusUnchanged is an unchanged member status.
-	StatusUnchanged
+	// NoMember represents that the person is not a member any more.
+	NoMember
 )
 
 // Membership is the membership of a user in a committee.
@@ -62,6 +62,19 @@ type User struct {
 	Memberships []*Membership
 	Password    *string
 }
+
+// UserHistoryEntry is a point in time after this status applys.
+type UserHistoryEntry struct {
+	Since  time.Time
+	Status MemberStatus
+}
+
+// UserHistory is a list of status values over time.
+// Assumed to be sorted in increasing over the Since values.
+type UserHistory []*UserHistoryEntry
+
+// UsersHistories is a map of user names to their histories.
+type UsersHistories map[string]UserHistory
 
 // ParseRole parses a role from a string.
 func ParseRole(s string) (Role, error) {
@@ -96,6 +109,8 @@ func ParseMemberStatus(s string) (MemberStatus, error) {
 		return Voting, nil
 	case "nonevoting": // "nonvoting"
 		return NoneVoting, nil
+	case "nomember":
+		return NoMember, nil
 	default:
 		return 0, fmt.Errorf("invalid member status %q", s)
 	}
@@ -197,6 +212,27 @@ func (u *User) Committees() iter.Seq[*Committee] {
 	})
 }
 
+// Status member returns the status of the user at a given time.
+func (uh UserHistory) Status(when time.Time) MemberStatus {
+	if len(uh) == 0 {
+		return NoMember
+	}
+	target := &UserHistoryEntry{Since: when}
+	idx, found := slices.BinarySearchFunc(uh, target, func(a, b *UserHistoryEntry) int {
+		return a.Since.Compare(b.Since)
+	})
+	switch {
+	case found:
+		return uh[idx].Status
+	case idx == 0:
+		return NoMember
+	case idx == len(uh):
+		return uh[len(uh)-1].Status
+	default:
+		return uh[idx-1].Status
+	}
+}
+
 // LoadUser loads a user with a given nickname from the database.
 func LoadUser(ctx context.Context, db *database.Database, nickname string) (*User, error) {
 	tx, err := db.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
@@ -207,7 +243,11 @@ func LoadUser(ctx context.Context, db *database.Database, nickname string) (*Use
 	return loadUserTx(ctx, tx, nickname)
 }
 
-func loadUserTx(ctx context.Context, tx *sql.Tx, nickname string) (*User, error) {
+func loadBasicUserTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	nickname string,
+) (*User, error) {
 	// Collect user details
 	user := User{Nickname: nickname}
 	const userSQL = `SELECT firstname, lastname, is_admin ` +
@@ -222,7 +262,19 @@ func loadUserTx(ctx context.Context, tx *sql.Tx, nickname string) (*User, error)
 	case errors.Is(err, sql.ErrNoRows):
 		return nil, nil
 	case err != nil:
-		return nil, err
+		return nil, fmt.Errorf("loading user failed: %w", err)
+	}
+	return &user, nil
+}
+
+func loadUserTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	nickname string,
+) (*User, error) {
+	user, err := loadBasicUserTx(ctx, tx, nickname)
+	if err != nil || user == nil {
+		return user, err
 	}
 
 	// Collect memberships
@@ -287,7 +339,7 @@ func loadUserTx(ctx context.Context, tx *sql.Tx, nickname string) (*User, error)
 		}
 	}
 
-	return &user, nil
+	return user, nil
 }
 
 // Store updates user in the database.
@@ -589,4 +641,33 @@ func UpdateUserCommitteeStatusTx(
 		}
 	}
 	return nil
+}
+
+// LoadUsersHistoriesTx loads the histories of the users of a committee.
+func LoadUsersHistoriesTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	committeeID int64,
+) (UsersHistories, error) {
+	const loadHistorySQL = `SELECT nickname, status, since FROM member_history ` +
+		`WHERE committees_id = ? ` +
+		`ORDER BY nickname, unixepoch(since)`
+	rows, err := tx.QueryContext(ctx, loadHistorySQL, committeeID)
+	if err != nil {
+		return nil, fmt.Errorf("querying user histories failed: %w", err)
+	}
+	defer rows.Close()
+	userHistories := make(UsersHistories)
+	for rows.Next() {
+		var entry UserHistoryEntry
+		var nickname string
+		if err := rows.Scan(&nickname, &entry.Status, &entry.Since); err != nil {
+			return nil, fmt.Errorf("scanning user histories failed: %w", err)
+		}
+		userHistories[nickname] = append(userHistories[nickname], &entry)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("querying user histories failed: %w", err)
+	}
+	return userHistories, nil
 }

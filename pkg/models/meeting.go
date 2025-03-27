@@ -9,6 +9,7 @@
 package models
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
@@ -16,6 +17,7 @@ import (
 	"iter"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -59,6 +61,19 @@ type MemberCount struct {
 	Voting          int
 	AttendingVoting int
 	NonVoting       int
+}
+
+// MeetingData captures the main data of a meeting.
+type MeetingData struct {
+	Meeting   *Meeting
+	Attendees map[string]bool
+}
+
+// MeetingsOverview the an overview over a list of meetings.
+type MeetingsOverview struct {
+	Data           []*MeetingData
+	UsersHistories UsersHistories
+	Users          []*User // Only basic user data, no memberships.
 }
 
 // Meetings is a slice of meetings.
@@ -231,6 +246,51 @@ func LoadMeetings(
 		}(); err != nil {
 			return nil, fmt.Errorf("scanning meetings failed: %w", err)
 		}
+	}
+	return meetings, nil
+}
+
+// LoadLastNMeetingsTx loads the last n meetings.
+// If n < 0 all meetings are loaded.
+// The returned meetings are sorted lastest first.
+func LoadLastNMeetingsTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	committeeID int64,
+	limit int64,
+) (Meetings, error) {
+	const loadSQL = `SELECT id, status, gathering, start_time, stop_time, description ` +
+		`FROM meetings ` +
+		`WHERE committees_id = ? ` +
+		`ORDER BY unixepoch(start_time) DESC `
+	var query string
+	if limit >= 0 {
+		query = query + " LIMIT " + strconv.FormatInt(limit, 10)
+	} else {
+		query = loadSQL
+	}
+	rows, err := tx.QueryContext(ctx, query, committeeID)
+	if err != nil {
+		return nil, fmt.Errorf("querying last n meetings failed: %w", err)
+	}
+	defer rows.Close()
+	var meetings Meetings
+	for rows.Next() {
+		var meeting Meeting
+		if err := rows.Scan(
+			&meeting.ID,
+			&meeting.Status,
+			&meeting.Gathering,
+			&meeting.StartTime,
+			&meeting.StopTime,
+			&meeting.Description,
+		); err != nil {
+			return nil, fmt.Errorf("scanning n last meetings failed: %w", err)
+		}
+		meetings = append(meetings, &meeting)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("querying last n meetings failed: %w", err)
 	}
 	return meetings, nil
 }
@@ -565,4 +625,74 @@ func IsGatheringMeetingTx(
 		return false, fmt.Errorf("query gathering failed: %w", err)
 	}
 	return gathering, nil
+}
+
+// LoadMeetingsOverview loads the last meetings and gathers infos about them.
+func LoadMeetingsOverview(
+	ctx context.Context,
+	db *database.Database,
+	committeeID int64,
+	limit int64,
+) (*MeetingsOverview, error) {
+	tx, err := db.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	meetings, err := LoadLastNMeetingsTx(ctx, tx, committeeID, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	histories, err := LoadUsersHistoriesTx(ctx, tx, committeeID)
+	if err != nil {
+		return nil, err
+	}
+
+	data := make([]*MeetingData, 0, len(meetings))
+
+	neededUsers := map[string]bool{}
+	for _, meeting := range meetings {
+		for nickname, history := range histories {
+			if history.Status(meeting.StopTime) != NoMember {
+				neededUsers[nickname] = true
+			}
+		}
+		attendees, err := MeetingAttendeesTx(ctx, tx, meeting.ID)
+		if err != nil {
+			return nil, err
+		}
+		for nickname := range attendees {
+			neededUsers[nickname] = true
+		}
+
+		data = append(data, &MeetingData{
+			Meeting:   meeting,
+			Attendees: attendees,
+		})
+	}
+
+	users := make([]*User, 0, len(neededUsers))
+	for nickname := range neededUsers {
+		user, err := loadBasicUserTx(ctx, tx, nickname)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	// Sort user by firstname, lastname and nickname.
+	slices.SortFunc(users, func(a, b *User) int {
+		return cmp.Or(
+			misc.CompareEmptyStrings(a.Firstname, b.Firstname),
+			misc.CompareEmptyStrings(a.Lastname, b.Lastname),
+			strings.Compare(a.Nickname, b.Nickname),
+		)
+	})
+	overview := &MeetingsOverview{
+		Data:  data,
+		Users: users,
+	}
+	return overview, nil
 }

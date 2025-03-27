@@ -51,7 +51,8 @@ CREATE TABLE member_status (
 INSERT INTO member_status (id, name, description) VALUES
     (0, 'member', 'Regular committee member'),
     (1, 'voting', 'Voting member'),
-    (2, 'nonevoting', 'Persistent none voting member');
+    (2, 'nonevoting', 'Persistent none voting member'),
+    (3, 'nomember', 'Not a member');
 
 CREATE TABLE member_history (
     nickname      VARCHAR   NOT NULL,
