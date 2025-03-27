@@ -300,11 +300,6 @@ func (c *Controller) meetingStatusError(
 	}
 
 	quorum := models.Quorum{
-		Number:  1 + numVoters/2,
-		Reached: attendingVoters >= (1 + numVoters/2),
-	}
-
-	count := models.MemberCount{
 		Total:           len(members),
 		Member:          numMembers,
 		Voting:          numVoters,
@@ -321,7 +316,6 @@ func (c *Controller) meetingStatusError(
 		"Members":        members,
 		"Attendees":      attendees,
 		"Quorum":         &quorum,
-		"Count":          &count,
 		"Committee":      committee,
 		"AlreadyRunning": alreadyRunning,
 	}

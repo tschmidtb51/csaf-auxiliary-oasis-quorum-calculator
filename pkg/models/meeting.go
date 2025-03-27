@@ -49,17 +49,11 @@ type Meeting struct {
 
 // Quorum is the quorum of this meeting.
 type Quorum struct {
-	Number  int
-	Reached bool
-}
-
-// MemberCount is the individual count of the roles.
-type MemberCount struct {
 	Total           int
-	Member          int
 	Voting          int
 	AttendingVoting int
 	NonVoting       int
+	Member          int
 }
 
 // Attendees is a map from nicknames to (attended, voting rights).
@@ -76,6 +70,16 @@ type MeetingsOverview struct {
 	Data           []*MeetingData
 	UsersHistories UsersHistories
 	Users          []*User // Only basic user data, no memberships.
+}
+
+// Number is the number of voting members to reach the quorum.
+func (q *Quorum) Number() int {
+	return 1 + q.Voting/2
+}
+
+// Reached indicates that the quorum is reached.
+func (q *Quorum) Reached() bool {
+	return q.AttendingVoting >= q.Number()
 }
 
 // Meetings is a slice of meetings.
