@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -234,6 +235,56 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.chair(w, r)
+}
+
+func (c *Controller) memberStatus(w http.ResponseWriter, r *http.Request) {
+	var (
+		committeeID, err1 = strconv.ParseInt(r.FormValue("committee"), 10, 64)
+		ctx               = r.Context()
+	)
+	if !checkParam(w, err1) {
+		return
+	}
+
+	members, err := models.LoadCommitteeUsers(ctx, c.db, committeeID)
+	if !check(w, r, err) {
+		return
+	}
+	committee, err := models.LoadCommittee(ctx, c.db, committeeID)
+	if !check(w, r, err) {
+		return
+	}
+
+	membershipHistory, err := models.LoadMembershipHistory(ctx, c.db, committeeID, 10)
+	if !check(w, r, err) {
+		return
+	}
+
+	// Fill empty entries
+	for _, entry := range membershipHistory {
+		for _, member := range members {
+			if !slices.ContainsFunc(entry.Users, func(status models.UserStatus) bool {
+				return status.Nickname == member.Nickname
+			}) {
+				entry.Users = append(entry.Users, models.UserStatus{
+					Nickname: member.Nickname,
+					Status:   models.StatusUnchanged,
+				})
+			}
+		}
+		sort.Slice(entry.Users, func(i, j int) bool {
+			return entry.Users[i].Nickname < entry.Users[j].Nickname
+		})
+	}
+
+	data := templateData{
+		"Session":           auth.SessionFromContext(ctx),
+		"User":              auth.UserFromContext(ctx),
+		"Committee":         committee,
+		"Members":           members,
+		"MembershipHistory": membershipHistory,
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "member_history.tmpl", data))
 }
 
 func (c *Controller) meetingStatus(w http.ResponseWriter, r *http.Request) {
