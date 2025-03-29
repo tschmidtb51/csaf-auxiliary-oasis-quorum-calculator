@@ -193,6 +193,11 @@ func (m *Membership) HasAnyRole(roles ...Role) bool {
 	})
 }
 
+// GetCommittee returns the committee of this membership.
+func (m *Membership) GetCommittee() *Committee {
+	return m.Committee
+}
+
 // CountMemberships count the memberships with a given role.
 func (u *User) CountMemberships(role Role) int {
 	count := 0
@@ -207,20 +212,15 @@ func (u *User) CountMemberships(role Role) int {
 // CommitteesWithRole returns a sequence of Committees
 // in which the user has the given role.
 func (u *User) CommitteesWithRole(role Role) iter.Seq[*Committee] {
-	return func(yield func(*Committee) bool) {
-		for _, m := range u.Memberships {
-			if m.HasRole(role) && !yield(m.Committee) {
-				return
-			}
-		}
-	}
+	return misc.Map(
+		misc.Filter(slices.Values(u.Memberships),
+			func(m *Membership) bool { return m.HasRole(role) }),
+		(*Membership).GetCommittee)
 }
 
 // Committees returns an iterator over the committees of the user.
 func (u *User) Committees() iter.Seq[*Committee] {
-	return misc.Map(slices.Values(u.Memberships), func(m *Membership) *Committee {
-		return m.Committee
-	})
+	return misc.Map(slices.Values(u.Memberships), (*Membership).GetCommittee)
 }
 
 // Status member returns the status of the user at a given time.

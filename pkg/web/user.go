@@ -13,6 +13,7 @@ import (
 	"maps"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -76,15 +77,11 @@ func (c *Controller) userStore(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) usersStore(w http.ResponseWriter, r *http.Request) {
-	me := auth.SessionFromContext(r.Context()).Nickname()
 	if r.FormValue("delete") != "" {
-		filter := func(yield func(string) bool) {
-			for _, nickname := range r.Form["users"] {
-				if nickname != "admin" && nickname != me && !yield(nickname) {
-					return
-				}
-			}
-		}
+		me := auth.SessionFromContext(r.Context()).Nickname()
+		filter := misc.Filter(slices.Values(r.Form["users"]), func(nickname string) bool {
+			return nickname != "admin" && nickname != me
+		})
 		if !check(w, r, models.DeleteUsersByNickname(r.Context(), c.db, filter)) {
 			return
 		}
