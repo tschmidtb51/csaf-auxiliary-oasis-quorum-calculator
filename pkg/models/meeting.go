@@ -397,49 +397,6 @@ func (m *Meeting) Attendees(ctx context.Context, db *database.Database) (Attende
 	return attendees, nil
 }
 
-// UpdateMeetingStatus updates the status of the meeting identified by its id.
-func UpdateMeetingStatus(
-	ctx context.Context, db *database.Database,
-	meetingID, committeeID int64,
-	meetingStatus MeetingStatus,
-	precondition, onSuccess func(context.Context, *sql.Tx) error,
-) error {
-	tx, err := db.DB.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	if precondition != nil {
-		if err := precondition(ctx, tx); err != nil {
-			return err
-		}
-	}
-
-	const updateSQL = `UPDATE meetings SET status = ? ` +
-		`WHERE id = ? AND committees_id = ? ` +
-		`AND status != 2` // Don't update concluded meetings.
-
-	result, err := db.DB.ExecContext(ctx, updateSQL,
-		meetingStatus,
-		meetingID,
-		committeeID,
-	)
-	if err != nil {
-		return fmt.Errorf("updating meeting status failed: %w", err)
-	}
-	n, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("cannot determine meeting status change: %w", err)
-	}
-	if n == 1 && onSuccess != nil {
-		if err := onSuccess(ctx, tx); err != nil {
-			return nil
-		}
-	}
-	return tx.Commit()
-}
-
 // UpdateAttendees sets the attendees of a meeting to a given list.
 func UpdateAttendees(
 	ctx context.Context, db *database.Database,

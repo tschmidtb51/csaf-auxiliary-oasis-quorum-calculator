@@ -9,10 +9,7 @@
 package web
 
 import (
-	"context"
-	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
@@ -325,11 +322,6 @@ func (c *Controller) meetingStatusError(
 	check(w, r, c.tmpls.ExecuteTemplate(w, "meeting_status.tmpl", data))
 }
 
-var (
-	errAlreadyRunning = errors.New("already running")
-	errNewerConcluded = errors.New("newer concluded")
-)
-
 func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) {
 	var (
 		meetingID, err1     = strconv.ParseInt(r.FormValue("meeting"), 10, 64)
@@ -340,173 +332,14 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 	if !checkParam(w, err1, err2, err3) {
 		return
 	}
-
-	// Extra checks before we try to change the status.
-	precondition := func(ctx context.Context, tx *sql.Tx) error {
-		switch meetingStatus {
-		case models.MeetingRunning:
-			// We should not start a meeting if one is already running.
-			switch has, err := models.HasCommitteeRunningMeetingTx(ctx, tx, committeeID); {
-			case err != nil:
-				return err
-			case has:
-				return errAlreadyRunning
-			}
-		case models.MeetingConcluded:
-			// To ensure the correct time order of conclusions
-			// prevent that we conclude a meeting if a newer
-			// one already has been concluded.
-			switch has, err := models.HasConcludedMeetingNewerThanTx(ctx, tx, meetingID); {
-			case err != nil:
-				return err
-			case has:
-				return errNewerConcluded
-			}
-		}
-		return nil
-	}
-
-	// This is only called if the update was successful.
-	onSuccess := func(ctx context.Context, tx *sql.Tx) error {
-		if meetingStatus != models.MeetingConcluded {
-			return nil
-		}
-		gathering, err := models.IsGatheringMeetingTx(ctx, tx, meetingID)
-		if err != nil {
-			return err
-		}
-		// Gatherings have no influence on voting.
-		if gathering {
-			return nil
-		}
-		prevMeetingID, hasPrev, err := models.PreviousMeetingTx(ctx, tx, meetingID)
-		if err != nil {
-			return err
-		}
-		if !hasPrev { // We need two meetings.
-			return nil
-		}
-		prevAttendees, err := models.MeetingAttendeesTx(ctx, tx, prevMeetingID)
-		if err != nil {
-			return err
-		}
-		currAttendees, err := models.MeetingAttendeesTx(ctx, tx, meetingID)
-		if err != nil {
-			return err
-		}
-		users, err := models.LoadCommitteeUsersTx(ctx, tx, committeeID)
-		if err != nil {
-			return err
-		}
-
-		// Lazy previous loading as we don't need this in all cases.
-		var prevMeeting *models.Meeting
-		loadPrevMeeting := func() error {
-			if prevMeeting != nil {
-				return nil
-			}
-			var err error
-			prevMeeting, err = models.LoadMeetingTx(ctx, tx, meetingID, committeeID)
-			if err != nil {
-				err = fmt.Errorf("loading previous meeting failed: %w", err)
-			}
-			return err
-		}
-
-		// Lists of users to upgrade and downgrade.
-		var upgrades, downgrades []string
-
-		crit := models.MembershipByID(committeeID)
-		for _, user := range users {
-			ms := user.FindMembershipCriterion(crit)
-			if ms == nil || ms.Status == models.NoneVoting {
-				continue
-			}
-			votingCurr, wasInCurr := currAttendees[user.Nickname]
-			votingPrev, wasInPrev := prevAttendees[user.Nickname]
-
-			if !wasInCurr { // user was absent in current meeting.
-				if ms.Status == models.Voting { // currently a voting member
-					if !wasInPrev { // was absent in previous meeting.
-						// There could be three reasons:
-						// 1. User was not in the committee at end of the previous meeting.
-						// 2. User was not a voting member at this time.
-						// 3. User was a voting member but absent.
-						if err := loadPrevMeeting(); err != nil {
-							return err
-						}
-						memberStatus, wasMemberPrev, err := models.UserMemberStatusSinceTx(
-							ctx, tx,
-							user.Nickname, committeeID,
-							prevMeeting.StopTime)
-						if err != nil {
-							return err
-						}
-						switch {
-						case !wasMemberPrev:
-							// user was not member so that is his/her first strike.
-						case memberStatus != models.Voting:
-							// user was a member but at not a voter -> first strike.
-						default:
-							// second strike
-							downgrades = append(downgrades, user.Nickname)
-						}
-					}
-				}
-				continue
-			}
-			// User was in current meeting
-			if !votingCurr && ms.Status == models.Member { // Currently a none voting member
-				if wasInPrev { // Was in previous too
-					if votingPrev { // We know user was a downgraded voter -> no upgrade.
-						continue
-					}
-					// To be upgrade the user needs to be a member at the
-					// time of the previous time.
-					if err := loadPrevMeeting(); err != nil {
-						return err
-					}
-					memberStatus, wasMemberPrev, err := models.UserMemberStatusSinceTx(
-						ctx, tx,
-						user.Nickname, committeeID,
-						prevMeeting.StopTime)
-					if err != nil {
-						return err
-					}
-					if wasMemberPrev && memberStatus == models.Member {
-						upgrades = append(upgrades, user.Nickname)
-					}
-				}
-			}
-		} // all committee users.
-
-		// Store the changes.
-		if len(upgrades) > 0 || len(downgrades) > 0 {
-			when := time.Now() // TODO: Should we adjust the end time of the meeting?
-			if err := models.UpdateUserCommitteeStatusTx(
-				ctx, tx,
-				misc.Join2(
-					misc.Attribute(slices.Values(upgrades), models.Voting),
-					misc.Attribute(slices.Values(downgrades), models.Member)),
-				committeeID,
-				when,
-			); err != nil {
-				return fmt.Errorf("upgrading / downgrading members failed: %w", err)
-			}
-		}
-		return nil
-	}
-
-	switch err := models.UpdateMeetingStatus(
+	switch err := models.ChangeMeetingStatus(
 		ctx, c.db,
 		meetingID, committeeID, meetingStatus,
-		precondition,
-		onSuccess,
 	); {
-	case errors.Is(err, errAlreadyRunning):
+	case errors.Is(err, models.ErrAlreadyRunning):
 		c.meetingStatusError(w, r, "Already have a running meeting in this committee.")
 		return
-	case errors.Is(err, errNewerConcluded):
+	case errors.Is(err, models.ErrNewerConcluded):
 		c.meetingStatusError(w, r, "Already have a concluded meeting that is newer.")
 		return
 	case !check(w, r, err):
