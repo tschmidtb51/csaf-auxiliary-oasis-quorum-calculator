@@ -12,7 +12,6 @@ import (
 	"errors"
 	"net/http"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -39,20 +38,14 @@ func (c *Controller) chair(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) meetingsStore(w http.ResponseWriter, r *http.Request) {
-	committeeID, err := strconv.ParseInt(r.FormValue("committee"), 10, 64)
-	if !check(w, r, err) {
+	committeeID, err := misc.Atoi64(r.FormValue("committee"))
+	if !checkParam(w, err) {
 		return
 	}
 	ctx := r.Context()
 	if r.FormValue("delete") != "" {
-		filter := func(yield func(int64) bool) {
-			for _, m := range r.Form["meetings"] {
-				if id, err := strconv.ParseInt(m, 10, 64); err == nil && !yield(id) {
-					return
-				}
-			}
-		}
-		if !check(w, r, models.DeleteMeetingsByID(ctx, c.db, committeeID, filter)) {
+		ids := misc.ParseSeq(slices.Values(r.Form["meeting"]), misc.Atoi64)
+		if !check(w, r, models.DeleteMeetingsByID(ctx, c.db, committeeID, ids)) {
 			return
 		}
 	}
@@ -71,7 +64,7 @@ func (c *Controller) meetingsStore(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) meetingCreate(w http.ResponseWriter, r *http.Request) {
-	committee, err := strconv.ParseInt(r.FormValue("committee"), 10, 64)
+	committee, err := misc.Atoi64(r.FormValue("committee"))
 	if !checkParam(w, err) {
 		return
 	}
@@ -90,7 +83,7 @@ func (c *Controller) meetingCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) {
-	committee, err := strconv.ParseInt(r.FormValue("committee"), 10, 64)
+	committee, err := misc.Atoi64(r.FormValue("committee"))
 	if !checkParam(w, err) {
 		return
 	}
@@ -148,8 +141,8 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 
 func (c *Controller) meetingEdit(w http.ResponseWriter, r *http.Request) {
 	var (
-		meetingID, err1   = strconv.ParseInt(r.FormValue("meeting"), 10, 64)
-		committeeID, err2 = strconv.ParseInt(r.FormValue("committee"), 10, 64)
+		meetingID, err1   = misc.Atoi64(r.FormValue("meeting"))
+		committeeID, err2 = misc.Atoi64(r.FormValue("committee"))
 	)
 	if !checkParam(w, err1, err2) {
 		return
@@ -174,8 +167,8 @@ func (c *Controller) meetingEdit(w http.ResponseWriter, r *http.Request) {
 
 func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 	var (
-		meetingID, err1   = strconv.ParseInt(r.FormValue("meeting"), 10, 64)
-		committeeID, err2 = strconv.ParseInt(r.FormValue("committee"), 10, 64)
+		meetingID, err1   = misc.Atoi64(r.FormValue("meeting"))
+		committeeID, err2 = misc.Atoi64(r.FormValue("committee"))
 		description       = misc.NilString(strings.TrimSpace(r.FormValue("description")))
 		startTime         = r.FormValue("start_time")
 		duration          = r.FormValue("duration")
@@ -246,8 +239,8 @@ func (c *Controller) meetingStatusError(
 	errMsg string,
 ) {
 	var (
-		meetingID, err1   = strconv.ParseInt(r.FormValue("meeting"), 10, 64)
-		committeeID, err2 = strconv.ParseInt(r.FormValue("committee"), 10, 64)
+		meetingID, err1   = misc.Atoi64(r.FormValue("meeting"))
+		committeeID, err2 = misc.Atoi64(r.FormValue("committee"))
 		ctx               = r.Context()
 	)
 	if !checkParam(w, err1, err2) {
@@ -324,8 +317,8 @@ func (c *Controller) meetingStatusError(
 
 func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) {
 	var (
-		meetingID, err1     = strconv.ParseInt(r.FormValue("meeting"), 10, 64)
-		committeeID, err2   = strconv.ParseInt(r.FormValue("committee"), 10, 64)
+		meetingID, err1     = misc.Atoi64(r.FormValue("meeting"))
+		committeeID, err2   = misc.Atoi64(r.FormValue("committee"))
 		meetingStatus, err3 = models.ParseMeetingStatus(r.FormValue("status"))
 		ctx                 = r.Context()
 	)
@@ -350,8 +343,8 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 
 func (c *Controller) meetingAttendStore(w http.ResponseWriter, r *http.Request) {
 	var (
-		meetingID, err1   = strconv.ParseInt(r.FormValue("meeting"), 10, 64)
-		committeeID, err2 = strconv.ParseInt(r.FormValue("committee"), 10, 64)
+		meetingID, err1   = misc.Atoi64(r.FormValue("meeting"))
+		committeeID, err2 = misc.Atoi64(r.FormValue("committee"))
 		ctx               = r.Context()
 	)
 	if !checkParam(w, err1, err2) {
@@ -397,7 +390,7 @@ func (c *Controller) meetingAttendStore(w http.ResponseWriter, r *http.Request) 
 
 func (c *Controller) meetingsOverview(w http.ResponseWriter, r *http.Request) {
 	var (
-		committeeID, err = strconv.ParseInt(r.FormValue("committee"), 10, 64)
+		committeeID, err = misc.Atoi64(r.FormValue("committee"))
 		ctx              = r.Context()
 	)
 	if !checkParam(w, err) {

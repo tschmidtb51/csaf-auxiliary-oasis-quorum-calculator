@@ -13,6 +13,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"iter"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/database"
 )
@@ -25,14 +26,14 @@ type Committee struct {
 }
 
 // DeleteCommitteesByID deletes a list of committees by their ids.
-func DeleteCommitteesByID(ctx context.Context, db *database.Database, ids ...int64) error {
+func DeleteCommitteesByID(ctx context.Context, db *database.Database, ids iter.Seq[int64]) error {
 	tx, err := db.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 	const deleteSQL = `DELETE FROM committees WHERE id = ?`
-	for _, id := range ids {
+	for id := range ids {
 		if _, err := tx.ExecContext(ctx, deleteSQL, id); err != nil {
 			return fmt.Errorf("deleting committee failed: %w", err)
 		}

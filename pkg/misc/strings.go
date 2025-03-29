@@ -36,15 +36,9 @@ func Shorten(v any) string {
 	return s
 }
 
-// Int64sFromStrings converts a list of strings to int64s ignoring the bad.
-func Int64sFromStrings(s []string) []int64 {
-	ints := make([]int64, 0, len(s))
-	for _, v := range s {
-		if id, err := strconv.ParseInt(v, 10, 64); err == nil {
-			ints = append(ints, id)
-		}
-	}
-	return ints
+// Atoi64 is a [strconv.Atoi] like wrapper for int64s.
+func Atoi64(s string) (int64, error) {
+	return strconv.ParseInt(s, 10, 64)
 }
 
 // NilString returns nil if the given string is empty else a pointer to

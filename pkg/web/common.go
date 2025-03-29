@@ -17,6 +17,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/misc"
 )
 
 // datetimeHoursMinutes rounds the duration to minutes
@@ -69,10 +71,10 @@ func parseDuration(d string) (time.Duration, error) {
 	}
 	var h, m int64
 	if match[1] != "" {
-		h, _ = strconv.ParseInt(match[1], 10, 64)
+		h, _ = misc.Atoi64(match[1])
 	}
 	if match[2] != "" {
-		m, _ = strconv.ParseInt(match[2], 10, 64)
+		m, _ = misc.Atoi64(match[2])
 	}
 	return time.Duration(h)*time.Hour + time.Duration(m)*time.Minute, nil
 }

@@ -13,7 +13,6 @@ import (
 	"maps"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -222,7 +221,7 @@ func (c *Controller) userCommitteesStore(w http.ResponseWriter, r *http.Request)
 		}
 		var (
 			role, err2 = models.ParseRole(m[1])
-			id, err1   = strconv.ParseInt(m[2], 10, 64)
+			id, err1   = misc.Atoi64(m[2])
 		)
 		if err1 != nil || err2 != nil {
 			// Should not happen.

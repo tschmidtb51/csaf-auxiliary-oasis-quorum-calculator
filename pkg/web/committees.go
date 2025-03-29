@@ -11,7 +11,7 @@ package web
 import (
 	"fmt"
 	"net/http"
-	"strconv"
+	"slices"
 	"strings"
 
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/auth"
@@ -20,7 +20,7 @@ import (
 )
 
 func (c *Controller) committeeEdit(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
+	id, err := misc.Atoi64(r.FormValue("id"))
 	if !checkParam(w, err) {
 		return
 	}
@@ -42,7 +42,7 @@ func (c *Controller) committeeEdit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) committeeEditStore(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
+	id, err := misc.Atoi64(r.FormValue("id"))
 	if !checkParam(w, err) {
 		return
 	}
@@ -96,9 +96,8 @@ func (c *Controller) committees(w http.ResponseWriter, r *http.Request) {
 
 func (c *Controller) committeesStore(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("delete") != "" {
-		committees := r.Form["committees"]
-		if ids := misc.Int64sFromStrings(committees); len(ids) > 0 &&
-			!check(w, r, models.DeleteCommitteesByID(r.Context(), c.db, ids...)) {
+		ids := misc.ParseSeq(slices.Values(r.Form["committees"]), misc.Atoi64)
+		if !check(w, r, models.DeleteCommitteesByID(r.Context(), c.db, ids)) {
 			return
 		}
 	}
