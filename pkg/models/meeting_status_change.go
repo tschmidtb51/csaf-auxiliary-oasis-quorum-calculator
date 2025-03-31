@@ -225,7 +225,7 @@ func UpdateMeetingStatus(
 		`WHERE id = ? AND committees_id = ? ` +
 		`AND status <> 2` // Don't update concluded meetings.
 
-	result, err := db.DB.ExecContext(ctx, updateSQL,
+	result, err := tx.ExecContext(ctx, updateSQL,
 		meetingStatus,
 		meetingID,
 		committeeID,
