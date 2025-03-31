@@ -223,7 +223,7 @@ func UpdateMeetingStatus(
 
 	const updateSQL = `UPDATE meetings SET status = ? ` +
 		`WHERE id = ? AND committees_id = ? ` +
-		`AND status != 2` // Don't update concluded meetings.
+		`AND status <> 2` // Don't update concluded meetings.
 
 	result, err := db.DB.ExecContext(ctx, updateSQL,
 		meetingStatus,
@@ -239,7 +239,7 @@ func UpdateMeetingStatus(
 	}
 	if n == 1 && onSuccess != nil {
 		if err := onSuccess(ctx, tx); err != nil {
-			return nil
+			return err
 		}
 	}
 	return tx.Commit()
