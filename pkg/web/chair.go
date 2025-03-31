@@ -44,7 +44,7 @@ func (c *Controller) meetingsStore(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	if r.FormValue("delete") != "" {
-		ids := misc.ParseSeq(slices.Values(r.Form["meeting"]), misc.Atoi64)
+		ids := misc.ParseSeq(slices.Values(r.Form["meetings"]), misc.Atoi64)
 		if !check(w, r, models.DeleteMeetingsByID(ctx, c.db, committeeID, ids)) {
 			return
 		}
