@@ -26,4 +26,4 @@ To build OQC you just need to call
 make
 ```
 
-The compiled binary con be found under `bin/oqcd`.
+The compiled binary can be found under `bin/oqcd`.
