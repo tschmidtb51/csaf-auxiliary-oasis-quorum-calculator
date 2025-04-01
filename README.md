@@ -15,7 +15,7 @@
 A simple tool to calculate the quorum for OASIS TCs (definitely JavaScript-free)
 
 
-See [here](./docs/example-oqcd.toml) how to build.
+See [here](./docs/build.md) how to build.
 
 Create an initial config file.
 ```shell
