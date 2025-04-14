@@ -21,6 +21,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- $chair          := .User.CountMemberships (Role "chair") }}
 {{- $allowWrite     := and $running $chair }}
 {{- $concluded      := eq .Meeting.Status (MeetingStatus "concluded") }}
+{{- $notOnlyMember  := or .User.IsAdmin $chair -}}
 {{- if $running }}
 <p><a href="/meeting_status?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}"
       >&#x27F3; Refresh to see who has attended recently.</a>
@@ -101,7 +102,9 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <th>Attending</th>
     <th>First name</th>
     <th>Last name</th>
-    <th>Login</th>
+    {{ if $notOnlyMember }}
+          <th>Login</th>
+    {{ end }}
 {{ if not $gathering }}
     <th>Non-Voting<br>Member</th>
     <th>Voting<br>Member</th>
@@ -121,7 +124,9 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     </td>
     <td>{{ if ne .Firstname nil }}{{ .Firstname }}{{ end }}</td>
     <td>{{ if ne .Lastname nil }}{{ .Lastname }}{{ end }}</td>
-    <td>{{ .Nickname }}</td>
+    {{ if $notOnlyMember }}
+        <td>{{ .Nickname }}</td>
+    {{ end }}
 {{ if not $gathering }}
     {{ $ms := .FindMembership $committeeName }}
     <td>{{ if eq $ms.Status $statusMember }}&check;{{ end }}</td>
