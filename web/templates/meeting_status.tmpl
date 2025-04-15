@@ -29,7 +29,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- end }}
 <p>
 <strong>Committee</strong>: {{ $committeeName }}<br>
-<span style="background: {{if.Quorum.Reached }}#22bb45{{else}}#ff0f0f{{end}};">
+<span class="{{if .Quorum.Reached}}bg-reached{{else}}bg-notreached{{end}}">
 {{ if $gathering }}<strong>This is only a gathering meeting!<strong>
 {{ else }}
 <strong>Quorum</strong>: {{ .Quorum.Number }} ({{ if not .Quorum.Reached }}not {{ end }}reached)
