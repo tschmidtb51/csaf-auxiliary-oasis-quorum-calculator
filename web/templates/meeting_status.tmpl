@@ -29,6 +29,12 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- end }}
 <p>
 <strong>Committee</strong>: {{ $committeeName }}<br>
+<span style="background: {{if.Quorum.Reached }}#22bb45{{else}}#ff0f0f{{end}};">
+{{ if $gathering }}<strong>This is only a gathering meeting!<strong>
+{{ else }}
+<strong>Quorum</strong>: {{ .Quorum.Number }} ({{ if not .Quorum.Reached }}not {{ end }}reached)
+</span>
+<br>
 {{ with .Meeting }}
  <strong>Meeting</strong>: <time datetime="{{ .StartTime.UTC.Format "2006-01-02T15:04:05Z07:00" }}">{{ .StartTime.UTC.Format "2006-01-02 15:04 MST" }}</time>/<time
    datetime="{{ .Duration | DatetimeHoursMinutes }}">{{ .Duration | HoursMinutes }}</time><br>
@@ -52,10 +58,6 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ else if $running }}Running
 {{ end }}
 {{ end }}
-<br>
-{{ if $gathering }}<strong>This is only a gathering meeting!<strong>
-{{ else }}
-<strong>Quorum</strong>: {{ .Quorum.Number }} ({{ if not .Quorum.Reached }}not {{ end }}reached)<br>
 <table>
   <thead>
   <tr>
@@ -64,10 +66,6 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   </tr>
   </thead>
   <tbody>
-  <tr>
-    <td>Total</td>
-    <td>{{ .Quorum.Total }}</td>
-  </tr>
   <tr>
     <td>Members</td>
     <td>{{ .Quorum.Member }}</td>
@@ -83,6 +81,10 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   <tr>
     <td>Persistent Non-Voting Members</td>
     <td>{{ .Quorum.NonVoting }}</td>
+  </tr>
+  <tr>
+    <td>Total</td>
+    <td>{{ .Quorum.Total }}</td>
   </tr>
   </tbody>
 </table>
