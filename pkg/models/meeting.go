@@ -408,6 +408,14 @@ func UpdateAttendees(
 		return err
 	}
 	defer tx.Rollback()
+
+	/* TODO: rewrite me!
+
+	for nickname, voting := range seq {
+		if _, err := stmt.ExecContext(ctx, meetingID, nickname, voting); err != nil {
+			return fmt.Errorf("inserting attendee failed: %w", err)
+		}
+	}
 	// Delete all attendees.
 	const deleteAllSQL = `DELETE FROM attendees WHERE meetings_id = ?`
 	if _, err := tx.ExecContext(ctx, deleteAllSQL, meetingID); err != nil {
@@ -426,6 +434,7 @@ func UpdateAttendees(
 			return fmt.Errorf("inserting attendee failed: %w", err)
 		}
 	}
+	*/
 	return tx.Commit()
 }
 
