@@ -133,6 +133,14 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ end }}
   </tr>
 {{ end }}
+  <tr>
+  <td><b>Total</b></td>
+  <td colspan=3>{{ .Quorum.Total }}</td>
+  <td>{{ .Quorum.Member }}</td>
+  <td>{{ .Quorum.Voting }}</td>
+  <td>{{ .Quorum.NonVoting }}</td>
+
+  </tr>
 </tbody>
 </table>
 {{ if $allowWrite }}
