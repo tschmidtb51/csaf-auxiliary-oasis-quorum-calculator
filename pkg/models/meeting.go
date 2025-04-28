@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"iter"
+	"log/slog"
 	"maps"
 	"slices"
 	"strconv"
@@ -402,21 +403,44 @@ func Unattend(
 	ctx context.Context, db *database.Database,
 	meetingID int64,
 	seq iter.Seq2[string, bool],
+	accept time.Time,
 ) error {
 	tx, err := db.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	const deleteSQL = `DELETE FROM attendees ` +
-		`WHERE meetings_id = ? AND nickname = ?`
-	stmt, err := tx.PrepareContext(ctx, deleteSQL)
+	const (
+		checkSQL = `SELECT time FROM attendees_changes ` +
+			`WHERE meetings_id = ? AND nickname = ?`
+		deleteSQL = `DELETE FROM attendees ` +
+			`WHERE meetings_id = ? AND nickname = ?`
+	)
+	deleteStmt, err := tx.PrepareContext(ctx, deleteSQL)
 	if err != nil {
 		return fmt.Errorf("preparing unattend failed: %w", err)
 	}
-	defer stmt.Close()
+	defer deleteStmt.Close()
+	checkStmt, err := tx.PrepareContext(ctx, checkSQL)
+	if err != nil {
+		return fmt.Errorf("preparing unattend check failed: %w", err)
+	}
+	defer checkStmt.Close()
+
 	for nickname := range seq {
-		if _, err := stmt.ExecContext(ctx, meetingID, nickname); err != nil {
+		var t time.Time
+		switch err := checkStmt.QueryRowContext(ctx, meetingID, nickname).Scan(&t); {
+		case errors.Is(err, sql.ErrNoRows):
+			// It's okay.
+		case err != nil:
+			return fmt.Errorf("checking unattend failed: %w", err)
+		default:
+			if t.After(accept) {
+				slog.DebugContext(ctx, "race in unattend detected", "nickname", nickname)
+				continue
+			}
+		}
+		if _, err := deleteStmt.ExecContext(ctx, meetingID, nickname); err != nil {
 			return fmt.Errorf("unattend failed: %w", err)
 		}
 	}
@@ -428,23 +452,46 @@ func Attend(
 	ctx context.Context, db *database.Database,
 	meetingID int64,
 	seq iter.Seq2[string, bool],
+	accept time.Time,
 ) error {
 	tx, err := db.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	const insertSQL = `INSERT INTO attendees ` +
-		`(meetings_id, nickname, voting_allowed) ` +
-		`VALUES (?, ?, ?) ` +
-		`ON CONFLICT DO UPDATE SET voting_allowed = ?`
-	stmt, err := tx.PrepareContext(ctx, insertSQL)
+	const (
+		checkSQL = `SELECT time FROM attendees_changes ` +
+			`WHERE meetings_id = ? AND nickname = ?`
+		insertSQL = `INSERT INTO attendees ` +
+			`(meetings_id, nickname, voting_allowed) ` +
+			`VALUES (?, ?, ?) ` +
+			`ON CONFLICT DO UPDATE SET voting_allowed = ?`
+	)
+	insertStmt, err := tx.PrepareContext(ctx, insertSQL)
 	if err != nil {
 		return fmt.Errorf("preparing attend failed: %w", err)
 	}
-	defer stmt.Close()
+	defer insertStmt.Close()
+	checkStmt, err := tx.PrepareContext(ctx, checkSQL)
+	if err != nil {
+		return fmt.Errorf("preparing attend check failed: %w", err)
+	}
+	defer checkStmt.Close()
+
 	for nickname, voting := range seq {
-		if _, err := stmt.ExecContext(ctx, meetingID, nickname, voting, voting); err != nil {
+		var t time.Time
+		switch err := checkStmt.QueryRowContext(ctx, meetingID, nickname).Scan(&t); {
+		case errors.Is(err, sql.ErrNoRows):
+			// It's okay.
+		case err != nil:
+			return fmt.Errorf("checking attend failed: %w", err)
+		default:
+			if t.After(accept) {
+				slog.DebugContext(ctx, "race in attend detected", "nickname", nickname)
+				continue
+			}
+		}
+		if _, err := insertStmt.ExecContext(ctx, meetingID, nickname, voting, voting); err != nil {
 			return fmt.Errorf("attend failed: %w", err)
 		}
 	}

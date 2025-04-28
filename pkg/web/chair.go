@@ -346,9 +346,10 @@ func (c *Controller) meetingAttendStore(w http.ResponseWriter, r *http.Request) 
 		meetingID, err1   = misc.Atoi64(r.FormValue("meeting"))
 		committeeID, err2 = misc.Atoi64(r.FormValue("committee"))
 		attend            = !strings.Contains(strings.ToLower(r.FormValue("action")), "not attending")
+		rendered, err3    = misc.Atoi64(r.FormValue("rendered"))
 		ctx               = r.Context()
 	)
-	if !checkParam(w, err1, err2) {
+	if !checkParam(w, err1, err2, err3) {
 		return
 	}
 	meeting, err := models.LoadMeeting(ctx, c.db, meetingID, committeeID)
@@ -387,7 +388,7 @@ func (c *Controller) meetingAttendStore(w http.ResponseWriter, r *http.Request) 
 	if !attend {
 		action = models.Unattend
 	}
-	if !check(w, r, action(ctx, c.db, meetingID, seq)) {
+	if !check(w, r, action(ctx, c.db, meetingID, seq, time.UnixMicro(rendered).UTC())) {
 		return
 	}
 	c.meetingStatus(w, r)
