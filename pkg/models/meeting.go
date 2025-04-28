@@ -723,7 +723,9 @@ func LoadMeetingsOverview(
 		if err != nil {
 			return nil, err
 		}
-		users = append(users, user)
+		if user != nil {
+			users = append(users, user)
+		}
 	}
 
 	// Calculate the quora
