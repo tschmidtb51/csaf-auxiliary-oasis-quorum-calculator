@@ -84,6 +84,14 @@ func (q *Quorum) Reached() bool {
 	return q.AttendingVoting >= q.Number()
 }
 
+// Percent returns the percentage of voting members that attended.
+func (q *Quorum) Percent() float64 {
+	if q.Voting == 0 {
+		return 0
+	}
+	return 100 * float64(q.AttendingVoting) / float64(q.Voting)
+}
+
 // Meetings is a slice of meetings.
 type Meetings []*Meeting
 

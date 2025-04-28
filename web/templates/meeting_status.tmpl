@@ -29,17 +29,21 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- end }}
 <p>
 <strong>Committee</strong>: {{ $committeeName }}<br>
-<span class="{{if .Quorum.Reached}}bg-reached{{else}}bg-notreached{{end}}">
-{{ if $gathering }}<strong>This is only a gathering meeting!<strong>
-{{ else }}
-<strong>Quorum</strong>: {{ .Quorum.Number }} ({{ if not .Quorum.Reached }}not {{ end }}reached)
-</span>
-<br>
 {{ with .Meeting }}
  <strong>Meeting</strong>: <time datetime="{{ .StartTime.UTC.Format "2006-01-02T15:04:05Z07:00" }}">{{ .StartTime.UTC.Format "2006-01-02 15:04 MST" }}</time>/<time
    datetime="{{ .Duration | DatetimeHoursMinutes }}">{{ .Duration | HoursMinutes }}</time><br>
 {{ if .Description }}<strong>Description</strong>: {{ .Description }}<br>{{ end }}
 {{ end }}
+<br>
+{{ if $gathering }}<strong>This is only a gathering meeting!<strong>
+{{ else }}
+<strong>Quorum</strong>:
+<span class="{{ .Quorum.Number }} {{if .Quorum.Reached }}bg-reached{{else}}bg-notreached{{end}}">
+{{ if not .Quorum.Reached }}not {{ end }}reached</span>
+({{ .Quorum.Number }} of {{ .Quorum.Voting }} voting members needed)
+<br>
+<strong>Attending Voting Members</strong>:
+{{ .Quorum.AttendingVoting }} ({{ printf "%.1f" .Quorum.Percent }}%)
 <br>
 <strong>Status</strong>:
 {{ if $chair }}
@@ -69,14 +73,6 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   <tr>
     <td>Members</td>
     <td>{{ .Quorum.Member }}</td>
-  </tr>
-  <tr>
-    <td>Voting Members</td>
-    <td>{{ .Quorum.Voting }}</td>
-  </tr>
-  <tr>
-    <td>Attending Voting Members</td>
-    <td>{{ .Quorum.AttendingVoting }}</td>
   </tr>
   <tr>
     <td>Persistent Non-Voting Members</td>
