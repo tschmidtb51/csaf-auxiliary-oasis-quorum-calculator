@@ -62,28 +62,6 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ else if $running }}Running
 {{ end }}
 {{ end }}
-<table>
-  <thead>
-  <tr>
-    <th>Description</th>
-    <th>Count</th>
-  </tr>
-  </thead>
-  <tbody>
-  <tr>
-    <td>Members</td>
-    <td>{{ .Quorum.Member }}</td>
-  </tr>
-  <tr>
-    <td>Persistent Non-Voting Members</td>
-    <td>{{ .Quorum.NonVoting }}</td>
-  </tr>
-  <tr>
-    <td>Total</td>
-    <td>{{ .Quorum.Total }}</td>
-  </tr>
-  </tbody>
-</table>
 {{ end }}
 {{ if .Members }}
 {{- $statusMember     := MemberStatus "member" }}
