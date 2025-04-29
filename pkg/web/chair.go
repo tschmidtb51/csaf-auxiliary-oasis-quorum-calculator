@@ -91,8 +91,8 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 		description = misc.NilString(strings.TrimSpace(r.FormValue("description")))
 		startTime   = r.FormValue("start_time")
 		duration    = r.FormValue("duration")
+		timezone    = r.FormValue("timezone")
 		gathering   = r.FormValue("gathering") != ""
-		s, errS     = time.ParseInLocation("2006-01-02T15:04", startTime, time.UTC)
 		d, errD     = parseDuration(duration)
 		ctx         = r.Context()
 	)
@@ -107,6 +107,17 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 		"Meeting":   &meeting,
 		"Committee": committee,
 	}
+
+	location, errL := time.LoadLocation(timezone)
+	if errL != nil {
+		data.error("Invalid timezone.")
+		location = time.UTC
+	}
+	s, errS := time.ParseInLocation("2006-01-02T15:04", startTime, location)
+	if errS == nil {
+		s = s.UTC()
+	}
+
 	switch {
 	case errS != nil && errD != nil:
 		data.error("Start time and duration are invalid.")
@@ -118,6 +129,7 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 		data.error("Duration is invalid.")
 		d = time.Hour
 	}
+
 	meeting.StartTime = s
 	meeting.StopTime = s.Add(d)
 	if data.hasError() {
@@ -172,10 +184,12 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		description       = misc.NilString(strings.TrimSpace(r.FormValue("description")))
 		startTime         = r.FormValue("start_time")
 		duration          = r.FormValue("duration")
+		timezone          = r.FormValue("timezone")
 		gathering         = r.FormValue("gathering") != ""
-		s, errS           = time.ParseInLocation("2006-01-02T15:04", startTime, time.UTC)
 		d, errD           = parseDuration(duration)
 		ctx               = r.Context()
+		s                 time.Time
+		errS              error
 	)
 	if !checkParam(w, err1, err2) {
 		return
@@ -195,6 +209,16 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		"Meeting":   meeting,
 		"Committee": committeeID,
 	}
+
+	location, errL := time.LoadLocation(timezone)
+	if errL != nil {
+		data.error("Invalid timezone.")
+		location = time.UTC
+	}
+	if s, errS = time.ParseInLocation("2006-01-02T15:04", startTime, location); errS != nil {
+		s = s.UTC()
+	}
+
 	switch {
 	case errS != nil && errD != nil:
 		data.error("Start time and duration are invalid.")
@@ -206,6 +230,7 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		data.error("Duration is invalid.")
 		d = time.Hour
 	}
+
 	meeting.StartTime = s
 	meeting.StopTime = s.Add(d)
 	if data.hasError() {

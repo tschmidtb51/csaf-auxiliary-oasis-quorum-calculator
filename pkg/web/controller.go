@@ -35,6 +35,11 @@ type Controller struct {
 type templateData map[string]any
 
 func (td templateData) error(msg string) {
+	if v, ok := td["error"]; ok {
+		if m, ok := v.(string); ok {
+			msg = m + " " + msg
+		}
+	}
 	td["Error"] = msg
 }
 
