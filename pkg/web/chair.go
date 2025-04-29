@@ -98,14 +98,13 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 		ctx         = r.Context()
 		s           time.Time
 		errS        error
-		sL          time.Time
 	)
 
 	if errL != nil {
-		s, errS = time.ParseInLocation("2006-01-02T15:04", startTime, time.UTC)
-	} else {
-		sL, errS = time.ParseInLocation("2006-01-02T15:04", startTime, l)
-		s = sL.UTC()
+		l = time.UTC
+	}
+	if s, errS = time.ParseInLocation("2006-01-02T15:04", startTime, l); errS != nil {
+		s = s.UTC()
 	}
 
 	meeting := models.Meeting{
@@ -122,13 +121,13 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 	switch {
 	case errS != nil && errD != nil && errL != nil:
 		data.error("Start time and duration are invalid. Couldn't parse timezone.")
-		s, d, l = time.Now(), time.Hour, time.UTC
+		s, d = time.Now(), time.Hour
 	case errS != nil && errL != nil:
 		data.error("Start time is invalid. Couldn't parse timezone.")
-		s, l = time.Now(), time.UTC
+		s = time.Now()
 	case errD != nil && errL != nil:
 		data.error("Duration is invalid. Couldn't parse timezone.")
-		d, l = time.Hour, time.UTC
+		d = time.Hour
 	case errS != nil && errD != nil:
 		data.error("Start time and duration are invalid.")
 		s, d = time.Now(), time.Hour
