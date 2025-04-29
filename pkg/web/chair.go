@@ -93,20 +93,9 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 		duration    = r.FormValue("duration")
 		timezone    = r.FormValue("timezone")
 		gathering   = r.FormValue("gathering") != ""
-		l, errL     = time.LoadLocation(timezone)
 		d, errD     = parseDuration(duration)
 		ctx         = r.Context()
-		s           time.Time
-		errS        error
 	)
-
-	if errL != nil {
-		l = time.UTC
-	}
-	if s, errS = time.ParseInLocation("2006-01-02T15:04", startTime, l); errS != nil {
-		s = s.UTC()
-	}
-
 	meeting := models.Meeting{
 		CommitteeID: committee,
 		Gathering:   gathering,
@@ -118,16 +107,18 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 		"Meeting":   &meeting,
 		"Committee": committee,
 	}
+
+	location, errL := time.LoadLocation(timezone)
+	if errL != nil {
+		data.error("Invalid timezone.")
+		location = time.UTC
+	}
+	s, errS := time.ParseInLocation("2006-01-02T15:04", startTime, location)
+	if errS == nil {
+		s = s.UTC()
+	}
+
 	switch {
-	case errS != nil && errD != nil && errL != nil:
-		data.error("Start time and duration are invalid. Couldn't parse timezone.")
-		s, d = time.Now(), time.Hour
-	case errS != nil && errL != nil:
-		data.error("Start time is invalid. Couldn't parse timezone.")
-		s = time.Now()
-	case errD != nil && errL != nil:
-		data.error("Duration is invalid. Couldn't parse timezone.")
-		d = time.Hour
 	case errS != nil && errD != nil:
 		data.error("Start time and duration are invalid.")
 		s, d = time.Now(), time.Hour
@@ -137,8 +128,6 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 	case errD != nil:
 		data.error("Duration is invalid.")
 		d = time.Hour
-	case errL != nil:
-		data.error("Couldn't parse timezone.")
 	}
 
 	meeting.StartTime = s
@@ -199,7 +188,6 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		gathering         = r.FormValue("gathering") != ""
 		d, errD           = parseDuration(duration)
 		ctx               = r.Context()
-		l, errL           = time.LoadLocation(timezone)
 		s                 time.Time
 		errS              error
 	)
@@ -214,14 +202,6 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		c.chair(w, r)
 		return
 	}
-	if errL != nil {
-		l = time.UTC
-	}
-
-	if s, errS = time.ParseInLocation("2006-01-02T15:04", startTime, l); errS != nil {
-		s = s.UTC()
-	}
-
 	meeting.Description = description
 	data := templateData{
 		"Session":   auth.SessionFromContext(ctx),
@@ -229,16 +209,17 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		"Meeting":   meeting,
 		"Committee": committeeID,
 	}
+
+	location, errL := time.LoadLocation(timezone)
+	if errL != nil {
+		data.error("Invalid timezone.")
+		location = time.UTC
+	}
+	if s, errS = time.ParseInLocation("2006-01-02T15:04", startTime, location); errS != nil {
+		s = s.UTC()
+	}
+
 	switch {
-	case errS != nil && errD != nil && errL != nil:
-		data.error("Start time and duration are invalid. Couldn't parse timezone.")
-		s, d = time.Now(), time.Hour
-	case errS != nil && errL != nil:
-		data.error("Start time is invalid. Couldn't parse timezone.")
-		s = time.Now()
-	case errD != nil && errL != nil:
-		data.error("Duration is invalid. Couldn't parse timezone.")
-		d = time.Hour
 	case errS != nil && errD != nil:
 		data.error("Start time and duration are invalid.")
 		s, d = time.Now(), time.Hour
@@ -248,8 +229,6 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 	case errD != nil:
 		data.error("Duration is invalid.")
 		d = time.Hour
-	case errL != nil:
-		data.error("Couldn't parse timezone.")
 	}
 
 	meeting.StartTime = s
