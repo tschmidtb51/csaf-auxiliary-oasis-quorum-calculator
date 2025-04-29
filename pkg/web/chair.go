@@ -195,10 +195,13 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		description       = misc.NilString(strings.TrimSpace(r.FormValue("description")))
 		startTime         = r.FormValue("start_time")
 		duration          = r.FormValue("duration")
+		timezone          = r.FormValue("timezone")
 		gathering         = r.FormValue("gathering") != ""
-		s, errS           = time.ParseInLocation("2006-01-02T15:04", startTime, time.UTC)
 		d, errD           = parseDuration(duration)
 		ctx               = r.Context()
+		l, errL           = time.LoadLocation(timezone)
+		s                 time.Time
+		errS              error
 	)
 	if !checkParam(w, err1, err2) {
 		return
@@ -211,6 +214,14 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		c.chair(w, r)
 		return
 	}
+	if errL != nil {
+		l = time.UTC
+	}
+
+	if s, errS = time.ParseInLocation("2006-01-02T15:04", startTime, l); errS != nil {
+		s = s.UTC()
+	}
+
 	meeting.Description = description
 	data := templateData{
 		"Session":   auth.SessionFromContext(ctx),
@@ -219,6 +230,15 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		"Committee": committeeID,
 	}
 	switch {
+	case errS != nil && errD != nil && errL != nil:
+		data.error("Start time and duration are invalid. Couldn't parse timezone.")
+		s, d = time.Now(), time.Hour
+	case errS != nil && errL != nil:
+		data.error("Start time is invalid. Couldn't parse timezone.")
+		s = time.Now()
+	case errD != nil && errL != nil:
+		data.error("Duration is invalid. Couldn't parse timezone.")
+		d = time.Hour
 	case errS != nil && errD != nil:
 		data.error("Start time and duration are invalid.")
 		s, d = time.Now(), time.Hour
@@ -228,7 +248,10 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 	case errD != nil:
 		data.error("Duration is invalid.")
 		d = time.Hour
+	case errL != nil:
+		data.error("Couldn't parse timezone.")
 	}
+
 	meeting.StartTime = s
 	meeting.StopTime = s.Add(d)
 	if data.hasError() {
