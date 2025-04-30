@@ -100,5 +100,4 @@ func main() {
 	flag.Parse()
 
 	check(run(committeesCSV, databaseURL))
-
 }
