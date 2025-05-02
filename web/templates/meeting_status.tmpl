@@ -113,12 +113,20 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ end }}
 <tfoot>
   <tr>
-  <td><strong>Total</strong>: {{ .Quorum.Total }}</td>
-  <td>{{ .Quorum.AttendingVoting }}</td>
-  <td colspan="3"></td>
-  <td>{{ .Quorum.Member }}</td>
-  <td>{{ .Quorum.Voting }}</td>
-  <td>{{ .Quorum.NonVoting }}</td>
+    {{ if $allowWrite }}
+      <td></td>
+    {{ end }}
+      <td>{{ .Quorum.AttendingVoting }}</td>
+      <td><strong>Total</strong>: {{ .Quorum.Total }}</td>
+      <td></td>
+    {{ if $notOnlyMember }}
+      <td></td>
+    {{ end }}
+    {{ if not $gathering }}
+      <td>{{ .Quorum.Member }}</td>
+      <td>{{ .Quorum.Voting }}</td>
+      <td>{{ .Quorum.NonVoting }}</td>
+    {{ end }}
   </tr>
 </tfoot>
 </tbody>
