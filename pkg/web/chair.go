@@ -319,6 +319,7 @@ func (c *Controller) meetingStatusError(
 		Member:          numMembers,
 		Voting:          numVoters,
 		AttendingVoting: attendingVoters,
+		Attending:       len(attendees),
 		NonVoting:       numNonVoters,
 	}
 

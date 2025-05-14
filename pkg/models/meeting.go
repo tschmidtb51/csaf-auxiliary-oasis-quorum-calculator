@@ -53,6 +53,7 @@ type Quorum struct {
 	Total           int
 	Voting          int
 	AttendingVoting int
+	Attending       int
 	NonVoting       int
 	Member          int
 }
