@@ -31,7 +31,7 @@ const (
 	ChairRole Role = iota
 	// MemberRole is the member role.
 	MemberRole
-	// SecretaryRole is an alias for the manager role.
+	// SecretaryRole is functionally the same as the manager role for this tool.
 	SecretaryRole
 )
 
