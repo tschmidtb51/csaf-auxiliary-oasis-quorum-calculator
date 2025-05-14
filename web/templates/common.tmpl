@@ -33,7 +33,8 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
         {{ end }}
         {{ $chair  := .User.CountMemberships (Role "chair") }}
         {{ $member := .User.CountMemberships (Role "member") }}
-        {{ if $chair }}
+        {{ $secretary  := .User.CountMemberships (Role "secretary") }}
+        {{ if or $chair $secretary }}
           <a href="/chair?SESSIONID={{ .Session.ID }}">chair <span class="emojiom">&#x1F9FE; ({{ $chair }})</span></a>
         {{ end }}
         {{ if $member }}

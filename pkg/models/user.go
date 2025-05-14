@@ -217,10 +217,17 @@ func (u *User) CountMemberships(role Role) int {
 
 // CommitteesWithRole returns a sequence of Committees
 // in which the user has the given role.
-func (u *User) CommitteesWithRole(role Role) iter.Seq[*Committee] {
+func (u *User) CommitteesWithRole(role ...Role) iter.Seq[*Committee] {
 	return misc.Map(
 		misc.Filter(slices.Values(u.Memberships),
-			func(m *Membership) bool { return m.HasRole(role) }),
+			func(m *Membership) bool {
+				for _, role := range role {
+					if m.HasRole(role) {
+						return true
+					}
+				}
+				return false
+			}),
 		(*Membership).GetCommittee)
 }
 

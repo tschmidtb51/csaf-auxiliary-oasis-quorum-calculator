@@ -11,11 +11,12 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- $sessionID := .Session.ID }}
 {{- $meetings  := .Meetings }}
 {{- $chair     := Role "chair" }}
+{{- $secretary := Role "secretary" }}
 {{- $user      := .User }}
 {{- $meetingOnHold    := MeetingStatus "onhold" }}
 {{- $meetingRunning   := MeetingStatus "running" }}
 {{- $meetingConcluded := MeetingStatus "concluded" }}
-{{ range $user.CommitteesWithRole $chair }}
+{{ range $user.CommitteesWithRole $chair $secretary }}
 {{- $committeeID := .ID }}
 <fieldset>
   <legend>Committee <strong>{{ .Name }}</strong></legend>
