@@ -68,7 +68,6 @@ func NewController(
 	cfg *config.Config,
 	db *database.Database,
 ) (*Controller, error) {
-
 	path := filepath.Join(cfg.Web.Root, "templates", "*.tmpl")
 
 	tmpls, err := template.New("index").Funcs(templateFuncs).ParseGlob(path)
@@ -92,9 +91,10 @@ func (c *Controller) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var isMember, isChair bool
+	var isMember, isChair, isSecretary bool
 	for _, i := range user.Memberships {
 		isChair = isChair || slices.Contains(i.Roles, models.ChairRole)
+		isSecretary = isSecretary || slices.Contains(i.Roles, models.SecretaryRole)
 		isMember = isMember || slices.Contains(i.Roles, models.MemberRole)
 	}
 
@@ -102,7 +102,7 @@ func (c *Controller) home(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case user.IsAdmin:
 		redirectURI = "/users"
-	case isChair:
+	case isChair || isSecretary:
 		redirectURI = "/chair"
 	case isMember:
 		redirectURI = "/member"
@@ -142,17 +142,17 @@ func (c *Controller) Bind() http.Handler {
 		{"/committees_store", mw.Admin(c.committeesStore)},
 		{"/committee_create", mw.Admin(c.committeeCreate)},
 		{"/committee_store", mw.Admin(c.committeeStore)},
-		// Chair
-		{"/chair", mw.Roles(c.chair, models.ChairRole)},
-		{"/meetings_overview", mw.CommitteeRoles(c.meetingsOverview, models.ChairRole)},
-		{"/meetings_store", mw.CommitteeRoles(c.meetingsStore, models.ChairRole)},
-		{"/meeting_create", mw.CommitteeRoles(c.meetingCreate, models.ChairRole)},
-		{"/meeting_create_store", mw.CommitteeRoles(c.meetingCreateStore, models.ChairRole)},
-		{"/meeting_edit", mw.CommitteeRoles(c.meetingEdit, models.ChairRole)},
-		{"/meeting_edit_store", mw.CommitteeRoles(c.meetingEditStore, models.ChairRole)},
-		{"/meeting_status", mw.CommitteeRoles(c.meetingStatus, models.ChairRole, models.MemberRole)},
-		{"/meeting_status_store", mw.CommitteeRoles(c.meetingStatusStore, models.ChairRole)},
-		{"/meeting_attend_store", mw.CommitteeRoles(c.meetingAttendStore, models.ChairRole)},
+		// Chair and Secretary
+		{"/chair", mw.Roles(c.chair, models.ChairRole, models.SecretaryRole)},
+		{"/meetings_overview", mw.CommitteeRoles(c.meetingsOverview, models.ChairRole, models.SecretaryRole)},
+		{"/meetings_store", mw.CommitteeRoles(c.meetingsStore, models.ChairRole, models.SecretaryRole)},
+		{"/meeting_create", mw.CommitteeRoles(c.meetingCreate, models.ChairRole, models.SecretaryRole)},
+		{"/meeting_create_store", mw.CommitteeRoles(c.meetingCreateStore, models.ChairRole, models.SecretaryRole)},
+		{"/meeting_edit", mw.CommitteeRoles(c.meetingEdit, models.ChairRole, models.SecretaryRole)},
+		{"/meeting_edit_store", mw.CommitteeRoles(c.meetingEditStore, models.ChairRole, models.SecretaryRole)},
+		{"/meeting_status", mw.CommitteeRoles(c.meetingStatus, models.ChairRole, models.MemberRole, models.SecretaryRole)},
+		{"/meeting_status_store", mw.CommitteeRoles(c.meetingStatusStore, models.ChairRole, models.SecretaryRole)},
+		{"/meeting_attend_store", mw.CommitteeRoles(c.meetingAttendStore, models.ChairRole, models.SecretaryRole)},
 		// Member
 		{"/member", mw.Roles(c.member, models.MemberRole)},
 		{"/member_attend", mw.CommitteeRoles(c.memberAttend, models.MemberRole)},

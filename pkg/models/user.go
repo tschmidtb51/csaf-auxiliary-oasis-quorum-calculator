@@ -31,6 +31,8 @@ const (
 	ChairRole Role = iota
 	// MemberRole is the member role.
 	MemberRole
+	// SecretaryRole is an alias for the manager role.
+	SecretaryRole
 )
 
 // MemberStatus is the status of a member in a committee.
@@ -84,6 +86,8 @@ func ParseRole(s string) (Role, error) {
 		return ChairRole, nil
 	case "member":
 		return MemberRole, nil
+	case "secretary":
+		return SecretaryRole, nil
 	default:
 		return 0, fmt.Errorf("invalid role %q", s)
 	}
@@ -96,6 +100,8 @@ func (r Role) String() string {
 		return "manager"
 	case MemberRole:
 		return "member"
+	case SecretaryRole:
+		return "secretary"
 	default:
 		return fmt.Sprintf("unknown role (%d)", r)
 	}
