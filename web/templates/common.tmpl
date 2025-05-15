@@ -31,11 +31,10 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
           <a href="/users?SESSIONID={{ .Session.ID }}">users <span class="emojiom">&#x1F465;</span></a>
           <a href="/committees?SESSIONID={{ .Session.ID }}">committees <span class="emojiom">&#x1F3DB;</span></a>
         {{ end }}
-        {{ $chair  := .User.CountMemberships (Role "chair") }}
+        {{ $chair  := .User.CountMemberships (Role "chair") (Role "secretary") }}
         {{ $member := .User.CountMemberships (Role "member") }}
-        {{ $secretary  := .User.CountMemberships (Role "secretary") }}
-        {{ if or $chair $secretary }}
-          <a href="/chair?SESSIONID={{ .Session.ID }}">chair <span class="emojiom">&#x1F9FE; ({{ $chair }})</span></a>
+        {{ if $chair }}
+          <a href="/chair?SESSIONID={{ .Session.ID }}">chair <span class="emojiom">&#x1F9FE;</span> ({{ $chair }})</a>
         {{ end }}
         {{ if $member }}
           <a href="/member?SESSIONID={{ .Session.ID }}">member <span class="emojiom">&#x1F465;</span> ({{ $member }})</a>

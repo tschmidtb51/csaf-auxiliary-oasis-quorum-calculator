@@ -205,11 +205,14 @@ func (m *Membership) GetCommittee() *Committee {
 }
 
 // CountMemberships count the memberships with a given role.
-func (u *User) CountMemberships(role Role) int {
+func (u *User) CountMemberships(role ...Role) int {
 	count := 0
 	for _, m := range u.Memberships {
-		if m.HasRole(role) {
-			count++
+		for _, role := range role {
+			if m.HasRole(role) {
+				count++
+				break
+			}
 		}
 	}
 	return count
