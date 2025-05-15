@@ -55,6 +55,21 @@ func ParseSeq[S, T any](seq iter.Seq[S], parse func(S) (T, error)) iter.Seq[T] {
 	}
 }
 
+// ParseSeq2 parses the elements of a given sequence with
+// a given parse function and returns a sequence of the parsing
+// results that do not fail to parse.
+func ParseSeq2[S, K, V any](seq iter.Seq[S], parse func(S) (K, V, error)) iter.Seq2[K, V] {
+	return func(yield func(K, V) bool) {
+		for s := range seq {
+			if k, v, err := parse(s); err == nil {
+				if !yield(k, v) {
+					return
+				}
+			}
+		}
+	}
+}
+
 // Attribute returns a sequence attributing the given one with a given attribute.
 func Attribute[S, A any](seq iter.Seq[S], a A) iter.Seq2[S, A] {
 	return func(yield func(S, A) bool) {
