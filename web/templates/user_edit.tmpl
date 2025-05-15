@@ -9,6 +9,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 */ -}}
 {{ template "header" . }}
 {{ template "error" . }}
+{{- if or .User.IsAdmin (eq .NewUser.Nickname .User.Nickname) }}
 <fieldset>
   <legend>Edit <strong>{{ .NewUser.Nickname }}</strong></legend>
   <form action="/user_edit_store" method="post" accept-charset="UTF-8">
@@ -31,6 +32,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <input type="reset" value="Reset">
   </form>
 </fieldset>
+{{ end -}}
 {{- if and (not .NewUser.IsAdmin) .Committees }}
 <fieldset>
   <legend>Edit <strong>{{ .NewUser.Nickname }}</strong>'s committees</legend>

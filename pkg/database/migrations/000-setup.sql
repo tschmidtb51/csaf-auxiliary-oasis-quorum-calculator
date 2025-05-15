@@ -41,7 +41,8 @@ CREATE TABLE committee_role (
 INSERT INTO committee_role (id, name, description) VALUES
     (0, 'member', 'Regular committee member'),
     (1, 'chair', 'Committee chair'),
-    (2, 'secretary', 'Committee secretary');
+    (2, 'secretary', 'Committee secretary'),
+    (3, 'staff', 'Committee staff');
 
 CREATE TABLE member_status (
     id          INTEGER PRIMARY KEY,
