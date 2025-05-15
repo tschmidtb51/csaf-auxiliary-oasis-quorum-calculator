@@ -33,7 +33,8 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
         {{ end }}
         {{ $chair  := .User.CountMemberships (Role "chair") }}
         {{ $member := .User.CountMemberships (Role "member") }}
-        {{ if $chair }}
+        {{ $secretary  := .User.CountMemberships (Role "secretary") }}
+        {{ if or $chair $secretary }}
           <a href="/chair?SESSIONID={{ .Session.ID }}">chair <span class="emojiom">&#x1F9FE; ({{ $chair }})</span></a>
         {{ end }}
         {{ if $member }}
@@ -66,6 +67,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ define "committees_table_header" -}}
 <thead>
 <th>Committee</th>
+<th>Secretary</th>
 <th>Chair</th>
 <th>Member</th>
 <th> Voting<br>Member </th>
@@ -78,6 +80,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ if .Memberships }}
 {{ $member := Role "member" }}
 {{ $chair  := Role "chair" }}
+{{ $secretary  := Role "secretary" }}
 {{ $statusVoting     := MemberStatus "voting" }}
 {{ $statusMember     := MemberStatus "member" }}
 {{ $statusNoneVoting := MemberStatus "nonevoting" }}
@@ -87,8 +90,9 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   {{ range .Memberships }}
   <tr>
     <td>{{ .Committee.Name }}</td>
-    <td>{{ if .HasRole $chair   }}&check;{{ end }}</td>
-    <td>{{ if .HasRole $member  }}&check;{{ end }}</td>
+      <td>{{ if .HasRole $secretary }}&check;{{ end }}</td>
+    <td>{{ if .HasRole $chair       }}&check;{{ end }}</td>
+    <td>{{ if .HasRole $member      }}&check;{{ end }}</td>
     <td>{{ if and (.HasRole $member) (eq .Status $statusVoting) }}&check;{{ end }}</td>
     <td>{{ if and (.HasRole $member) (eq .Status $statusMember) }}&check;{{ end }}</td>
     <td>{{ if and (.HasRole $member) (eq .Status $statusNoneVoting) }}&check;{{ end }}</td>
@@ -105,6 +109,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ if $committees }}
 {{ $member := Role "member" }}
 {{ $chair  := Role "chair" }}
+{{ $secretary  := Role "secretary" }}
 {{ $statusVoting     := MemberStatus "voting" }}
 {{ $statusMember     := MemberStatus "member" }}
 {{ $statusNoneVoting := MemberStatus "nonevoting" }}
@@ -117,7 +122,14 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     {{ $ms := $user.FindMembership .Name }}
     {{ $isChair  := $ms.HasRole $chair }}
     {{ $isMember := $ms.HasRole $member }}
+    {{ $isSecretary  := $ms.HasRole $secretary }}
     {{ if $ms }}
+    <td>
+      <input type="checkbox"
+             name="role_committee"
+             value="secretary{{ .ID }}"
+             {{ if $isSecretary }}checked{{ end }}>
+    </td>
     <td>
       <input type="checkbox"
              name="role_committee"
@@ -149,6 +161,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
              {{ if and $isMember (eq $ms.Status $statusNoneVoting) }}checked{{ end }}>
     </td>
     {{ else }}
+    <td><input name="role_committee" type="checkbox" value="secretary{{ .ID }}"></td>
     <td><input name="role_committee" type="checkbox" value="chair{{ .ID }}"></td>
     <td><input name="role_committee" type="checkbox" value="member{{ .ID }}"></td>
     <td>

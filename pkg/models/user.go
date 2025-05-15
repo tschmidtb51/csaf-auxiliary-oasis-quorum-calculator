@@ -31,6 +31,8 @@ const (
 	ChairRole Role = iota
 	// MemberRole is the member role.
 	MemberRole
+	// SecretaryRole is functionally the same as the manager role for this tool.
+	SecretaryRole
 )
 
 // MemberStatus is the status of a member in a committee.
@@ -84,6 +86,8 @@ func ParseRole(s string) (Role, error) {
 		return ChairRole, nil
 	case "member":
 		return MemberRole, nil
+	case "secretary":
+		return SecretaryRole, nil
 	default:
 		return 0, fmt.Errorf("invalid role %q", s)
 	}
@@ -96,6 +100,8 @@ func (r Role) String() string {
 		return "manager"
 	case MemberRole:
 		return "member"
+	case SecretaryRole:
+		return "secretary"
 	default:
 		return fmt.Sprintf("unknown role (%d)", r)
 	}
@@ -211,10 +217,17 @@ func (u *User) CountMemberships(role Role) int {
 
 // CommitteesWithRole returns a sequence of Committees
 // in which the user has the given role.
-func (u *User) CommitteesWithRole(role Role) iter.Seq[*Committee] {
+func (u *User) CommitteesWithRole(role ...Role) iter.Seq[*Committee] {
 	return misc.Map(
 		misc.Filter(slices.Values(u.Memberships),
-			func(m *Membership) bool { return m.HasRole(role) }),
+			func(m *Membership) bool {
+				for _, role := range role {
+					if m.HasRole(role) {
+						return true
+					}
+				}
+				return false
+			}),
 		(*Membership).GetCommittee)
 }
 
