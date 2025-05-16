@@ -33,6 +33,8 @@ const (
 	MemberRole
 	// SecretaryRole is functionally the same as the manager role for this tool.
 	SecretaryRole
+	// StaffRole manages members and member attending state.
+	StaffRole
 )
 
 // MemberStatus is the status of a member in a committee.
@@ -88,6 +90,8 @@ func ParseRole(s string) (Role, error) {
 		return MemberRole, nil
 	case "secretary":
 		return SecretaryRole, nil
+	case "staff":
+		return StaffRole, nil
 	default:
 		return 0, fmt.Errorf("invalid role %q", s)
 	}
@@ -102,6 +106,8 @@ func (r Role) String() string {
 		return "member"
 	case SecretaryRole:
 		return "secretary"
+	case StaffRole:
+		return "staff"
 	default:
 		return fmt.Sprintf("unknown role (%d)", r)
 	}
@@ -569,7 +575,8 @@ func LoadCommitteeUsersTx(
 ) ([]*User, error) {
 	// Load nicknames.
 	const committeeUsersSQL = `SELECT distinct(nickname) FROM committee_roles ` +
-		`WHERE committees_id = ? ` +
+		`WHERE committees_id = ?` +
+		`AND committee_role_id != (SELECT id FROM committee_role WHERE name = 'staff')` +
 		`ORDER BY nickname`
 	rows, err := tx.QueryContext(ctx, committeeUsersSQL, committeeID)
 	if err != nil {

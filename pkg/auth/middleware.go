@@ -133,6 +133,21 @@ func (mw *Middleware) User(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
+// AdminOrRoles only allows the given handler to be called if the user is an admin or has any given role.
+func (mw *Middleware) AdminOrRoles(next http.HandlerFunc, roles ...models.Role) http.HandlerFunc {
+	return mw.User(func(w http.ResponseWriter, r *http.Request) {
+		if user := UserFromContext(r.Context()); user == nil || !user.IsAdmin {
+			if !slices.ContainsFunc(user.Memberships, func(m *models.Membership) bool {
+				return m.HasAnyRole(roles...)
+			}) {
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			}
+		}
+		next(w, r)
+	})
+}
+
 // Admin only allows the given handler to be called if the user is an admin.
 func (mw *Middleware) Admin(next http.HandlerFunc) http.HandlerFunc {
 	return mw.User(func(w http.ResponseWriter, r *http.Request) {

@@ -10,14 +10,19 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ template "header" . }}
 {{ $sessionID := .Session.ID }}
 {{ $me := .Session.Nickname }}
+{{ $isAdmin := .User.IsAdmin }}
+{{ if $isAdmin }}
 <a href="/user_create?SESSIONID={{ $sessionID }}">Create new user</a>
+{{ end }}
 <p>Users:</p>
 {{ if .Users }}
 <form action="/users_store?SESSIONID={{ $sessionID }}" method="post" accept-charset="UTF-8">
 <table>
   <thead>
     <tr>
+      {{ if $isAdmin }}
       <th>&nbsp;</th>
+      {{- end -}}
       <th>Name</th>
       <th>First name</th>
       <th>Last name</th>
@@ -27,11 +32,13 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   <tbody>
     {{ range $index, $user := .Users }}{{ with $user }}
     <tr>
+      {{ if $isAdmin }}
       <td>
         {{- if and (ne .Nickname "admin") (ne .Nickname $me) -}}
         <input type="checkbox" name="users" id="check{{ $index }}" value="{{ .Nickname }}">
         {{- end -}}
       </td>
+      {{ end -}}
       <td><a href="/user_edit?SESSIONID={{ $sessionID }}&nickname={{ .Nickname }}">{{ .Nickname }}</a></td>
       <td>{{ if .Firstname }}{{ .Firstname }}{{ end }}</td>
       <td>{{ if .Lastname }}{{ .Lastname }}{{ end }}</td>
@@ -40,8 +47,10 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     {{ end }}{{ end }}
   </tbody>
 </table>
+{{ if $isAdmin }}
 <input type="reset" value="Clear">
 <input type="submit" name="delete" value="Delete">
+{{ end -}}
 </form>
 {{ end }}
 {{ template "footer" }}

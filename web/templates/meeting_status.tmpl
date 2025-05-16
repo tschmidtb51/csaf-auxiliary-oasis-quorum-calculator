@@ -20,7 +20,8 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{- $alreadyRunning := .AlreadyRunning }}
 {{- $chair          := .User.CountMemberships (Role "chair") }}
 {{- $secretary      := .User.CountMemberships (Role "secretary") }}
-{{- $allowWrite     := and $running $chair }}
+{{- $staff          := .User.CountMemberships (Role "staff") }}
+{{- $allowWrite     := and $running (or $chair $secretary $staff) }}
 {{- $concluded      := eq .Meeting.Status (MeetingStatus "concluded") }}
 {{- $notOnlyMember  := or .User.IsAdmin $chair -}}
 {{- $userNickname   := .User.Nickname }}
