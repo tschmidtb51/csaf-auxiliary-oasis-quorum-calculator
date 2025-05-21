@@ -30,7 +30,7 @@ func check(err error) {
 }
 
 func sendMail(recipient, password, TCName string) error {
-	smtpHost := "kolab.intevation.de"
+	smtpHost := "localhost"
 	smtpPort := "25"
 	emailFrom := "OASIS Quorum Calculator <no-reply@quorum.oasis-open.org>"
 	//emailPassword := ""
