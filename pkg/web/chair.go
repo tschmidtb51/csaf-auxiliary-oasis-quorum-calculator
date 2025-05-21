@@ -9,7 +9,9 @@
 package web
 
 import (
+	"encoding/csv"
 	"errors"
+	"fmt"
 	"net/http"
 	"slices"
 	"strings"
@@ -91,8 +93,8 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 		description = misc.NilString(strings.TrimSpace(r.FormValue("description")))
 		startTime   = r.FormValue("start_time")
 		duration    = r.FormValue("duration")
+		timezone    = r.FormValue("timezone")
 		gathering   = r.FormValue("gathering") != ""
-		s, errS     = time.ParseInLocation("2006-01-02T15:04", startTime, time.UTC)
 		d, errD     = parseDuration(duration)
 		ctx         = r.Context()
 	)
@@ -107,6 +109,17 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 		"Meeting":   &meeting,
 		"Committee": committee,
 	}
+
+	location, errL := time.LoadLocation(timezone)
+	if errL != nil {
+		data.error("Invalid timezone.")
+		location = time.UTC
+	}
+	s, errS := time.ParseInLocation("2006-01-02T15:04", startTime, location)
+	if errS == nil {
+		s = s.UTC()
+	}
+
 	switch {
 	case errS != nil && errD != nil:
 		data.error("Start time and duration are invalid.")
@@ -118,6 +131,7 @@ func (c *Controller) meetingCreateStore(w http.ResponseWriter, r *http.Request) 
 		data.error("Duration is invalid.")
 		d = time.Hour
 	}
+
 	meeting.StartTime = s
 	meeting.StopTime = s.Add(d)
 	if data.hasError() {
@@ -172,10 +186,12 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		description       = misc.NilString(strings.TrimSpace(r.FormValue("description")))
 		startTime         = r.FormValue("start_time")
 		duration          = r.FormValue("duration")
+		timezone          = r.FormValue("timezone")
 		gathering         = r.FormValue("gathering") != ""
-		s, errS           = time.ParseInLocation("2006-01-02T15:04", startTime, time.UTC)
 		d, errD           = parseDuration(duration)
 		ctx               = r.Context()
+		s                 time.Time
+		errS              error
 	)
 	if !checkParam(w, err1, err2) {
 		return
@@ -195,6 +211,16 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		"Meeting":   meeting,
 		"Committee": committeeID,
 	}
+
+	location, errL := time.LoadLocation(timezone)
+	if errL != nil {
+		data.error("Invalid timezone.")
+		location = time.UTC
+	}
+	if s, errS = time.ParseInLocation("2006-01-02T15:04", startTime, location); errS != nil {
+		s = s.UTC()
+	}
+
 	switch {
 	case errS != nil && errD != nil:
 		data.error("Start time and duration are invalid.")
@@ -206,6 +232,7 @@ func (c *Controller) meetingEditStore(w http.ResponseWriter, r *http.Request) {
 		data.error("Duration is invalid.")
 		d = time.Hour
 	}
+
 	meeting.StartTime = s
 	meeting.StopTime = s.Add(d)
 	if data.hasError() {
@@ -294,6 +321,7 @@ func (c *Controller) meetingStatusError(
 		Member:          numMembers,
 		Voting:          numVoters,
 		AttendingVoting: attendingVoters,
+		Attending:       len(attendees),
 		NonVoting:       numNonVoters,
 	}
 
@@ -419,4 +447,115 @@ func (c *Controller) meetingsOverview(w http.ResponseWriter, r *http.Request) {
 		"Overview":  overview,
 	}
 	check(w, r, c.tmpls.ExecuteTemplate(w, "meetings_overview.tmpl", data))
+}
+
+func (c *Controller) meetingsExport(w http.ResponseWriter, r *http.Request) {
+	var (
+		committeeID, err = misc.Atoi64(r.FormValue("committee"))
+		ctx              = r.Context()
+	)
+	if !checkParam(w, err) {
+		return
+	}
+	const limit = -1
+	overview, err := models.LoadMeetingsOverview(ctx, c.db, committeeID, limit)
+	if !check(w, r, err) {
+		return
+	}
+
+	// Set headers for CSV download
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment;filename=meetings_%d.csv", committeeID))
+
+	// Create CSV writer
+	writer := csv.NewWriter(w)
+	defer writer.Flush()
+
+	// Write CSV header
+	header := []string{
+		"Meeting ID",
+		"Start Time",
+		"Stop Time",
+		"Status",
+		"Gathering",
+		"Description",
+		"Quorum Reached",
+		"Quorum Percent",
+		"Attending Voting",
+		"Total Attendees",
+		"Attendees",
+		"Non-Attendees",
+	}
+	if err := writer.Write(header); err != nil {
+		check(w, r, err)
+		return
+	}
+
+	// Write meeting data
+	for _, meetingData := range overview.Data {
+		meeting := meetingData.Meeting
+		quorum := meetingData.Quorum
+		// Convert Status to string
+		var status string
+		switch meeting.Status {
+		case models.MeetingOnHold:
+			status = "On Hold"
+		case models.MeetingRunning:
+			status = "Running"
+		case models.MeetingConcluded:
+			status = "Concluded"
+		default:
+			status = "Could not load Status"
+		}
+		// Get description
+		description := ""
+		if meeting.Description != nil {
+			description = *meeting.Description
+		}
+
+		// All attendees
+		totalAttendees := len(meetingData.Attendees)
+
+		var attendeesList []string
+		for nickname, voting := range meetingData.Attendees {
+			status := "non-voting"
+			if voting {
+				status = "voting"
+			}
+			attendeesList = append(attendeesList, fmt.Sprintf("%s:%s", nickname, status))
+		}
+		// Convert to String to write to CSV
+		attendeesString := strings.Join(attendeesList, ",")
+
+		// All users except those who attended to get a list of all non-Attendees
+		var nonAttendeesList []string
+		for _, user := range overview.Users {
+			if _, attended := meetingData.Attendees[user.Nickname]; !attended {
+				nonAttendeesList = append(nonAttendeesList, user.Nickname)
+			}
+		}
+		// Convert to String to write to CSV
+		nonAttendeesString := strings.Join(nonAttendeesList, ",")
+
+		// Gather all data
+		data := []string{
+			fmt.Sprintf("%d", meeting.ID),
+			meeting.StartTime.Format("2006-01-02 15:04:05"),
+			meeting.StopTime.Format("2006-01-02 15:04:05"),
+			status,
+			fmt.Sprintf("%t", meeting.Gathering),
+			description,
+			fmt.Sprintf("%t", quorum.Reached()),
+			fmt.Sprintf("%.2f", quorum.Percent()),
+			fmt.Sprintf("%d", quorum.AttendingVoting),
+			fmt.Sprintf("%d", totalAttendees),
+			attendeesString,
+			nonAttendeesString,
+		}
+		// and write it to a file
+		if err := writer.Write(data); err != nil {
+			check(w, r, err)
+			return
+		}
+	}
 }

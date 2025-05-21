@@ -49,9 +49,21 @@ func (c *Committee) GetID() int64 {
 
 // LoadCommittees loads all committees ordered by name.
 func LoadCommittees(ctx context.Context, db *database.Database) ([]*Committee, error) {
-	const loadSQL = `SELECT id, name, description FROM committees ` +
-		`ORDER BY name`
-	rows, err := db.DB.QueryContext(ctx, loadSQL)
+	return LoadCommitteesFiltered(ctx, db, "")
+}
+
+// LoadCommitteesFiltered loads all committees ordered by name that can be managed by the specified staff user.
+func LoadCommitteesFiltered(ctx context.Context, db *database.Database, filterStaffUser string) ([]*Committee, error) {
+	loadSQL := `SELECT id, name, description FROM committees `
+	if filterStaffUser != "" {
+		loadSQL += ` WHERE EXISTS (SELECT 1 FROM committee_roles ` +
+			`WHERE committee_role_id = ` +
+			`(SELECT id FROM committee_role WHERE name = 'staff') ` +
+			`AND id = committees_id ` +
+			`AND nickname = ?)`
+	}
+	loadSQL += ` ORDER BY name`
+	rows, err := db.DB.QueryContext(ctx, loadSQL, filterStaffUser)
 	if err != nil {
 		return nil, fmt.Errorf("loading committees failed: %w", err)
 	}

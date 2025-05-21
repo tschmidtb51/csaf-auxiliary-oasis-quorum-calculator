@@ -17,8 +17,9 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   {{- if $running }}
     <meta http-equiv="Refresh" content="300">
   {{- end }}
-  <link rel="stylesheet" href="/static/styles/simple.min.css">
   <link rel="stylesheet" href="/static/styles/styles.css">
+  <link rel="stylesheet" href="/static/styles/simple.min.css">
+  <link rel="stylesheet" href="/static/styles/openmoji.css">
   <title>OQC - OASIS Quorum Calculator</title>
 </head>
 <body>
@@ -26,21 +27,24 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     {{ if .Session }}
     <nav>
       {{ if .User }}
-        {{ if .User.IsAdmin }}
-          <a href="/users?SESSIONID={{ .Session.ID }}">users &#x1F465;</a>
-          <a href="/committees?SESSIONID={{ .Session.ID }}">committees &#x1F3DB;</a>
+        {{ $staff := .User.CountMemberships (Role "staff") }}
+        {{ if or .User.IsAdmin $staff }}
+          <a href="/users?SESSIONID={{ .Session.ID }}">users <span class="emojiom">&#x1F465;</span></a>
         {{ end }}
-        {{ $chair  := .User.CountMemberships (Role "chair") }}
+        {{ if or .User.IsAdmin }}
+          <a href="/committees?SESSIONID={{ .Session.ID }}">committees <span class="emojiom">&#x1F3DB;</span></a>
+        {{ end }}
+        {{ $chair  := .User.CountMemberships (Role "chair") (Role "secretary") (Role "staff") }}
         {{ $member := .User.CountMemberships (Role "member") }}
         {{ if $chair }}
-          <a href="/chair?SESSIONID={{ .Session.ID }}">chair &#x1F9FE; ({{ $chair }})</a>
+          <a href="/chair?SESSIONID={{ .Session.ID }}">chair <span class="emojiom">&#x1F9FE;</span> ({{ $chair }})</a>
         {{ end }}
         {{ if $member }}
-          <a href="/member?SESSIONID={{ .Session.ID }}">member &#x1F465; ({{ $member }})</a>
+          <a href="/member?SESSIONID={{ .Session.ID }}">member <span class="emojiom">&#x1F465;</span> ({{ $member }})</a>
         {{ end }}
-        <a href="/user?SESSIONID={{ .Session.ID }}">me &#x1F464; (<strong>{{ .User.Nickname }}</strong>)</a>
+        <a href="/user?SESSIONID={{ .Session.ID }}">me <span class="emojiom">&#x1F464;</span> (<strong>{{ .User.Nickname }}</strong>)</a>
       {{ end }}
-      <a href="/logout?SESSIONID={{ .Session.ID }}">Logout &#x1F6AA;</a>
+      <a href="/logout?SESSIONID={{ .Session.ID }}">Logout <span class="emojiom">🚪</span></a>
     </nav>
     {{ end }}
     <h4>OQC - OASIS Quorum Calculator</h4>
@@ -65,10 +69,12 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ define "committees_table_header" -}}
 <thead>
 <th>Committee</th>
+<th>Staff</th>
+<th>Secretary</th>
 <th>Chair</th>
 <th>Member</th>
-<th> Non-Voting<br>Member </th>
 <th> Voting<br>Member </th>
+<th> Non-Voting<br>Member </th>
 <th> Persistent<br>Non-Voting<br>Member </th>
 </thead>
 {{- end -}}
@@ -77,8 +83,10 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ if .Memberships }}
 {{ $member := Role "member" }}
 {{ $chair  := Role "chair" }}
-{{ $statusMember     := MemberStatus "member" }}
+{{ $secretary  := Role "secretary" }}
+{{ $staff  := Role "staff" }}
 {{ $statusVoting     := MemberStatus "voting" }}
+{{ $statusMember     := MemberStatus "member" }}
 {{ $statusNoneVoting := MemberStatus "nonevoting" }}
 <table>
   {{ template "committees_table_header" }}
@@ -86,10 +94,12 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   {{ range .Memberships }}
   <tr>
     <td>{{ .Committee.Name }}</td>
-    <td>{{ if .HasRole $chair   }}&check;{{ end }}</td>
-    <td>{{ if .HasRole $member  }}&check;{{ end }}</td>
-    <td>{{ if and (.HasRole $member) (eq .Status $statusMember) }}&check;{{ end }}</td>
+    <td>{{ if .HasRole $staff       }}&check;{{ end }}</td>
+    <td>{{ if .HasRole $secretary   }}&check;{{ end }}</td>
+    <td>{{ if .HasRole $chair       }}&check;{{ end }}</td>
+    <td>{{ if .HasRole $member      }}&check;{{ end }}</td>
     <td>{{ if and (.HasRole $member) (eq .Status $statusVoting) }}&check;{{ end }}</td>
+    <td>{{ if and (.HasRole $member) (eq .Status $statusMember) }}&check;{{ end }}</td>
     <td>{{ if and (.HasRole $member) (eq .Status $statusNoneVoting) }}&check;{{ end }}</td>
   <tr>
   {{ end }}
@@ -104,8 +114,10 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ if $committees }}
 {{ $member := Role "member" }}
 {{ $chair  := Role "chair" }}
-{{ $statusMember     := MemberStatus "member" }}
+{{ $secretary  := Role "secretary" }}
+{{ $staff  := Role "staff" }}
 {{ $statusVoting     := MemberStatus "voting" }}
+{{ $statusMember     := MemberStatus "member" }}
 {{ $statusNoneVoting := MemberStatus "nonevoting" }}
 <table>
   {{ template "committees_table_header" }}
@@ -114,9 +126,23 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
   <tr>
     <td>{{ .Name }}</td>
     {{ $ms := $user.FindMembership .Name }}
-    {{ $isChair  := $ms.HasRole $chair }}
-    {{ $isMember := $ms.HasRole $member }}
+    {{ $isChair     := $ms.HasRole $chair }}
+    {{ $isMember    := $ms.HasRole $member }}
+    {{ $isSecretary := $ms.HasRole $secretary }}
+    {{ $isStaff := $ms.HasRole $staff }}
     {{ if $ms }}
+    <td>
+      <input type="checkbox"
+             name="role_committee"
+             value="staff{{ .ID }}"
+             {{ if $isStaff }}checked{{ end }}>
+    </td>
+    <td>
+      <input type="checkbox"
+             name="role_committee"
+             value="secretary{{ .ID }}"
+             {{ if $isSecretary }}checked{{ end }}>
+    </td>
     <td>
       <input type="checkbox"
              name="role_committee"
@@ -132,14 +158,14 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
     <td>
       <input type="radio"
              name="status{{ .ID }}"
-             value="member"
-             {{ if and $isMember (eq $ms.Status $statusMember) }}checked{{ end }}>
+             value="voting"
+             {{ if and $isMember (eq $ms.Status $statusVoting) }}checked{{ end }}>
     </td>
     <td>
       <input type="radio"
              name="status{{ .ID }}"
-             value="voting"
-             {{ if and $isMember (eq $ms.Status $statusVoting) }}checked{{ end }}>
+             value="member"
+             {{ if and $isMember (eq $ms.Status $statusMember) }}checked{{ end }}>
     </td>
     <td>
       <input type="radio"
@@ -148,13 +174,15 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
              {{ if and $isMember (eq $ms.Status $statusNoneVoting) }}checked{{ end }}>
     </td>
     {{ else }}
+    <td><input name="role_committee" type="checkbox" value="staff{{ .ID }}"></td>
+    <td><input name="role_committee" type="checkbox" value="secretary{{ .ID }}"></td>
     <td><input name="role_committee" type="checkbox" value="chair{{ .ID }}"></td>
     <td><input name="role_committee" type="checkbox" value="member{{ .ID }}"></td>
     <td>
-      <input type="radio" name="status{{ .ID }}" value="member">
+      <input type="radio" name="status{{ .ID }}" value="voting">
     </td>
     <td>
-      <input type="radio" name="status{{ .ID }}" value="voting">
+      <input type="radio" name="status{{ .ID }}" value="member">
     </td>
     <td>
       <input type="radio" name="status{{ .ID }}" value="nonevoting">
@@ -175,7 +203,9 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
        id="start_time"
        value="{{ if not .StartTime.IsZero }}{{ .StartTime.UTC.Format "2006-01-02T15:04" }}{{ end }}"
        {{ if $concluded }}disabled{{ end }}
-       required><br>
+       required>
+<input type="text" name="timezone" value="UTC" {{ if $concluded }}disabled{{ end }}>
+<br>
 <label for="duration">Duration:</label>
 <input type="input"
        name="duration"

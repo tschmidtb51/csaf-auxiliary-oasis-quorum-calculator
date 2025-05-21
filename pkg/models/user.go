@@ -31,6 +31,10 @@ const (
 	ChairRole Role = iota
 	// MemberRole is the member role.
 	MemberRole
+	// SecretaryRole is functionally the same as the manager role for this tool.
+	SecretaryRole
+	// StaffRole manages members and member attending state.
+	StaffRole
 )
 
 // MemberStatus is the status of a member in a committee.
@@ -84,6 +88,10 @@ func ParseRole(s string) (Role, error) {
 		return ChairRole, nil
 	case "member":
 		return MemberRole, nil
+	case "secretary":
+		return SecretaryRole, nil
+	case "staff":
+		return StaffRole, nil
 	default:
 		return 0, fmt.Errorf("invalid role %q", s)
 	}
@@ -96,6 +104,10 @@ func (r Role) String() string {
 		return "manager"
 	case MemberRole:
 		return "member"
+	case SecretaryRole:
+		return "secretary"
+	case StaffRole:
+		return "staff"
 	default:
 		return fmt.Sprintf("unknown role (%d)", r)
 	}
@@ -199,11 +211,14 @@ func (m *Membership) GetCommittee() *Committee {
 }
 
 // CountMemberships count the memberships with a given role.
-func (u *User) CountMemberships(role Role) int {
+func (u *User) CountMemberships(role ...Role) int {
 	count := 0
 	for _, m := range u.Memberships {
-		if m.HasRole(role) {
-			count++
+		for _, role := range role {
+			if m.HasRole(role) {
+				count++
+				break
+			}
 		}
 	}
 	return count
@@ -211,10 +226,17 @@ func (u *User) CountMemberships(role Role) int {
 
 // CommitteesWithRole returns a sequence of Committees
 // in which the user has the given role.
-func (u *User) CommitteesWithRole(role Role) iter.Seq[*Committee] {
+func (u *User) CommitteesWithRole(role ...Role) iter.Seq[*Committee] {
 	return misc.Map(
 		misc.Filter(slices.Values(u.Memberships),
-			func(m *Membership) bool { return m.HasRole(role) }),
+			func(m *Membership) bool {
+				for _, role := range role {
+					if m.HasRole(role) {
+						return true
+					}
+				}
+				return false
+			}),
 		(*Membership).GetCommittee)
 }
 
@@ -553,7 +575,8 @@ func LoadCommitteeUsersTx(
 ) ([]*User, error) {
 	// Load nicknames.
 	const committeeUsersSQL = `SELECT distinct(nickname) FROM committee_roles ` +
-		`WHERE committees_id = ? ` +
+		`WHERE committees_id = ?` +
+		`AND committee_role_id != (SELECT id FROM committee_role WHERE name = 'staff')` +
 		`ORDER BY nickname`
 	rows, err := tx.QueryContext(ctx, committeeUsersSQL, committeeID)
 	if err != nil {

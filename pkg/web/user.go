@@ -146,7 +146,12 @@ func (c *Controller) userEdit(w http.ResponseWriter, r *http.Request) {
 		c.users(w, r)
 		return
 	}
-	committees, err := models.LoadCommittees(ctx, c.db)
+	session := auth.UserFromContext(ctx)
+	staffFilter := ""
+	if !session.IsAdmin {
+		staffFilter = session.Nickname
+	}
+	committees, err := models.LoadCommitteesFiltered(ctx, c.db, staffFilter)
 	if !check(w, r, err) {
 		return
 	}
@@ -206,11 +211,23 @@ func (c *Controller) userEditStore(w http.ResponseWriter, r *http.Request) {
 	check(w, r, c.tmpls.ExecuteTemplate(w, "user_edit.tmpl", data))
 }
 
-var roleCommitteeRe = regexp.MustCompile(`(member|chair)(\d+)`)
+var roleCommitteeRe = regexp.MustCompile(`(member|chair|secretary|staff)(\d+)`)
 
 func (c *Controller) userCommitteesStore(w http.ResponseWriter, r *http.Request) {
 	roleCommittees := r.Form["role_committee"]
 	memberships := map[int64]*models.Membership{}
+
+	ctx := r.Context()
+	session := auth.UserFromContext(ctx)
+	staffFilter := ""
+	if !session.IsAdmin {
+		staffFilter = session.Nickname
+	}
+	committees, err := models.LoadCommitteesFiltered(ctx, c.db, staffFilter)
+	if !check(w, r, err) {
+		return
+	}
+
 	for _, rc := range roleCommittees {
 		m := roleCommitteeRe.FindStringSubmatch(rc)
 		if m == nil {
@@ -222,6 +239,12 @@ func (c *Controller) userCommitteesStore(w http.ResponseWriter, r *http.Request)
 		)
 		if err1 != nil || err2 != nil {
 			// Should not happen.
+			continue
+		}
+		// Ignore entries that are not allowed to edit
+		if !slices.ContainsFunc(committees, func(c *models.Committee) bool {
+			return c.ID == id
+		}) {
 			continue
 		}
 		ms := memberships[id]
@@ -246,7 +269,6 @@ func (c *Controller) userCommitteesStore(w http.ResponseWriter, r *http.Request)
 	}
 
 	nickname := r.FormValue("nickname")
-	ctx := r.Context()
 	if !check(w, r, models.UpdateMemberships(
 		ctx, c.db, nickname, maps.Values(memberships))) {
 		return
@@ -255,7 +277,7 @@ func (c *Controller) userCommitteesStore(w http.ResponseWriter, r *http.Request)
 	if !check(w, r, err) {
 		return
 	}
-	committees, err := models.LoadCommittees(ctx, c.db)
+	committees, err = models.LoadCommitteesFiltered(ctx, c.db, staffFilter)
 	if !check(w, r, err) {
 		return
 	}

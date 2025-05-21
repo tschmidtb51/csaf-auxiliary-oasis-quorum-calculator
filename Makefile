@@ -14,6 +14,7 @@ all: build
 
 build:
 	$(GOBUILD)
+	go build -o $(BUILD_DIR)/sendaccountmails ./cmd/sendaccountmails
 
 run: build
 	./$(BUILD_DIR)/$(APP_NAME)
