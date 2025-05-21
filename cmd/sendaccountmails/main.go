@@ -15,12 +15,27 @@ import (
 	"bytes"
 	"encoding/csv"
 	"flag"
+	"fmt"
 	"log"
 	"net/smtp"
 	"os"
 	"strings"
 	"text/template"
 )
+
+const bodyTemplate = `Dear OASIS {{.TCName}} TC member,
+
+an account was created for you at the OQC (https://quorum.oasis-open.org).
+
+username: {{.Recipient}}
+initial password: {{.Password}}
+
+Please change your initial password.
+
+Kind regards,
+Your OQC Tool`
+
+var bodyTmpl = template.Must(template.New("body").Parse(bodyTemplate))
 
 func check(err error) {
 	if err != nil {
@@ -39,22 +54,6 @@ func sendMail(recipient, password, TCName string) error {
 		"Content-Type: text/plain; charset=\"UTF-8\"\r\n"
 
 	subject := "OQC - OASIS Quorum Calculator: Account creation"
-	bodyTemplate := `Dear OASIS {{.TCName}} TC member,
-
-an account was created for you at the OQC (https://quorum.oasis-open.org).
-
-username: {{.Recipient}}
-initial password: {{.Password}}
-
-Please change your initial password.
-
-Kind regards,
-Your OQC Tool`
-
-	tmpl, err := template.New("body").Parse(bodyTemplate)
-	if err != nil {
-		return err
-	}
 
 	data := struct {
 		Recipient string
@@ -67,9 +66,8 @@ Your OQC Tool`
 	}
 
 	var buf bytes.Buffer
-	err = tmpl.Execute(&buf, data)
-	if err != nil {
-		return (err)
+	if err := bodyTmpl.Execute(&buf, data); err != nil {
+		return err
 	}
 	body := buf.String()
 	// make sure that mixed line endings are all \r\n
@@ -87,9 +85,14 @@ Your OQC Tool`
 
 	//auth := smtp.PlainAuth("", emailFrom, emailPassword, smtpHost)
 
-	err = smtp.SendMail(smtpHost+":"+smtpPort, nil, emailFrom, []string{recipient}, msg)
-	if err != nil {
-		log.Fatal("Failed to send email:", err)
+	if err := smtp.SendMail(
+		smtpHost+":"+smtpPort,
+		nil,
+		emailFrom,
+		[]string{recipient},
+		msg,
+	); err != nil {
+		return fmt.Errorf("failed to send email: %w", err)
 	}
 	log.Printf("Email to %s sent successfully!\n", recipient)
 
@@ -112,14 +115,12 @@ func run(passwordCSV, TCName string) error {
 	log.Printf("sending out emails for TC `%s`\n", TCName)
 
 	for _, record := range records {
-		err = sendMail(record[0], record[1], TCName)
-		if err != nil {
+		if err := sendMail(record[0], record[1], TCName); err != nil {
 			return err
 		}
 	}
 
 	return nil
-
 }
 
 func main() {
