@@ -43,8 +43,7 @@ func check(err error) {
 	}
 }
 
-func sendMail(recipient, password, TCName string) error {
-	smtpHost := "localhost"
+func sendMail(recipient, password, TCName, smtpHost string) error {
 	smtpPort := "25"
 	emailFrom := "OASIS Quorum Calculator <no-reply@quorum.oasis-open.org>"
 	//emailPassword := ""
@@ -99,7 +98,7 @@ func sendMail(recipient, password, TCName string) error {
 	return nil
 }
 
-func run(passwordCSV, TCName string) error {
+func run(passwordCSV, TCName, smtpHost string) error {
 	passwordsFile, err := os.Open(passwordCSV)
 	if err != nil {
 		return err
@@ -115,7 +114,7 @@ func run(passwordCSV, TCName string) error {
 	log.Printf("sending out emails for TC `%s`\n", TCName)
 
 	for _, record := range records {
-		if err := sendMail(record[0], record[1], TCName); err != nil {
+		if err := sendMail(record[0], record[1], TCName, smtpHost); err != nil {
 			return err
 		}
 	}
@@ -127,12 +126,14 @@ func main() {
 	var (
 		passwordCSV string
 		TCName      string
+		smtpHost    string
 	)
 
 	flag.StringVar(&passwordCSV, "p", "passwords.csv", "CSV file of the list of users and passwords.")
 
 	flag.StringVar(&TCName, "t", "", "Name of the TC to mention in the email.")
+	flag.StringVar(&smtpHost, "h", "localhost", "Name of the smtp server to connect to.")
 	flag.Parse()
 
-	check(run(passwordCSV, TCName))
+	check(run(passwordCSV, TCName, smtpHost))
 }
