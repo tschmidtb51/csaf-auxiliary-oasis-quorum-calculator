@@ -9,7 +9,6 @@
 // Package main implements sending out emails for new accounts
 // as being read from an CSV file in the format `emailaddress,password`.
 // where `emailaddress` is the username by convention.
-
 package main
 
 import (
@@ -74,8 +73,8 @@ Your OQC Tool`
 	}
 	body := buf.String()
 	// make sure that mixed line endings are all \r\n
-	norm_body := strings.ReplaceAll(body, "\r\n", "\n")
-	body = strings.ReplaceAll(norm_body, "\n", "\r\n")
+	normBody := strings.ReplaceAll(body, "\r\n", "\n")
+	body = strings.ReplaceAll(normBody, "\n", "\r\n")
 
 	msg := []byte(
 		"To: " + recipient + "\r\n" +
