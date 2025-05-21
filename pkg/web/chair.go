@@ -39,6 +39,140 @@ func (c *Controller) chair(w http.ResponseWriter, r *http.Request) {
 	check(w, r, c.tmpls.ExecuteTemplate(w, "chair.tmpl", data))
 }
 
+func (c *Controller) absentOverview(w http.ResponseWriter, r *http.Request) {
+	var (
+		committeeID, err = misc.Atoi64(r.FormValue("committee"))
+		ctx              = r.Context()
+	)
+	if !checkParam(w, err) {
+		return
+	}
+	user := auth.UserFromContext(ctx)
+	memberAbsent, err := models.LoadAbsent(ctx, c.db, committeeID)
+	if !check(w, r, err) {
+		return
+	}
+	committee, err := models.LoadCommittee(ctx, c.db, committeeID)
+	if !check(w, r, err) {
+		return
+	}
+	members, err := models.LoadCommitteeUsers(ctx, c.db, committeeID)
+	if !check(w, r, err) {
+		return
+	}
+
+	data := templateData{
+		"Session":      auth.SessionFromContext(ctx),
+		"User":         user,
+		"Committee":    committee,
+		"Members":      members,
+		"MemberAbsent": memberAbsent,
+	}
+	check(w, r, c.tmpls.ExecuteTemplate(w, "absent_overview.tmpl", data))
+}
+
+func (c *Controller) absentStore(w http.ResponseWriter, r *http.Request) {
+	committeeID, err := misc.Atoi64(r.FormValue("committee"))
+	if !checkParam(w, err) {
+		return
+	}
+	ctx := r.Context()
+	if r.FormValue("delete") != "" {
+		parseAbsentEntries := func(s string) (string, time.Time, error) {
+			split := strings.Split(s, ";")
+			if len(split) != 2 {
+				return "", time.Time{}, errors.New("invalid entry length")
+			}
+			t, err := time.Parse("2006-01-02T15:04:05Z07:00", split[1])
+			if err != nil {
+				return "", time.Time{}, err
+			}
+			return split[0], t, nil
+		}
+		ids := misc.ParseSeq2(slices.Values(r.Form["entries"]), parseAbsentEntries)
+		if !check(w, r, models.DeleteAbsentEntries(ctx, c.db, committeeID, ids)) {
+			return
+		}
+	}
+	c.absentOverview(w, r)
+}
+
+func (c *Controller) absentCreateStore(w http.ResponseWriter, r *http.Request) {
+	committeeID, err := misc.Atoi64(r.FormValue("committee"))
+	if !checkParam(w, err) {
+		return
+	}
+	var (
+		nickname  = r.FormValue("nickname")
+		startTime = r.FormValue("start_time")
+		stopTime  = r.FormValue("stop_time")
+		timezone  = r.FormValue("timezone")
+		ctx       = r.Context()
+	)
+
+	committee, err := models.LoadCommittee(ctx, c.db, committeeID)
+	if !check(w, r, err) {
+		return
+	}
+	data := templateData{
+		"Session":   auth.SessionFromContext(ctx),
+		"User":      auth.UserFromContext(ctx),
+		"Committee": committee,
+	}
+
+	location, errL := time.LoadLocation(timezone)
+	if errL != nil {
+		data.error("Invalid timezone.")
+		location = time.UTC
+	}
+	start, errStart := time.ParseInLocation("2006-01-02T15:04", startTime, location)
+	if errStart == nil {
+		start = start.UTC()
+	}
+
+	stop, errStop := time.ParseInLocation("2006-01-02T15:04", stopTime, location)
+	if errStop == nil {
+		stop = stop.UTC()
+	}
+
+	switch {
+	case errStart != nil && errStop != nil:
+		data.error("Start time and stop time are invalid.")
+	case errStart != nil:
+		data.error("Start time is invalid.")
+	case errStop != nil:
+		data.error("Stop time is invalid.")
+	}
+
+	var m models.MemberAbsent
+	m.Name = nickname
+	m.StartTime = start
+	m.StopTime = stop
+	if data.hasError() {
+		check(w, r, c.tmpls.ExecuteTemplate(w, "absent_overview.tmpl", data))
+		return
+	}
+	memberAbsent, err := models.LoadAbsent(ctx, c.db, committeeID)
+	if !check(w, r, err) {
+		return
+	}
+	data["MemberAbsent"] = memberAbsent
+	if memberAbsent.Contains(models.MemberAbsentOverlapFilter(m.Name, m.StartTime, m.StopTime)) {
+		data.error("Time range collides with another excused absent in this committee.")
+		check(w, r, c.tmpls.ExecuteTemplate(w, "absent_overview.tmpl", data))
+		return
+	}
+	if !memberAbsent.CheckMaximumAbsentTime(time.Hour*24*40, m.Name) {
+		data.error("Maximum absent time is too large.")
+		check(w, r, c.tmpls.ExecuteTemplate(w, "absent_overview.tmpl", data))
+		return
+	}
+	if !check(w, r, m.StoreNew(ctx, c.db, committeeID)) {
+		return
+	}
+	c.absentOverview(w, r)
+}
+
 func (c *Controller) meetingsStore(w http.ResponseWriter, r *http.Request) {
 	committeeID, err := misc.Atoi64(r.FormValue("committee"))
 	if !checkParam(w, err) {
