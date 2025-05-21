@@ -12,10 +12,10 @@
 package main
 
 import (
-	"bytes"
 	"encoding/csv"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/smtp"
 	"os"
@@ -23,7 +23,7 @@ import (
 	"text/template"
 )
 
-const bodyTemplate = `Dear OASIS {{.TCName}} TC member,
+const templateTxt = `Dear OASIS {{.TCName}} TC member,
 
 an account was created for you at the OQC (https://quorum.oasis-open.org).
 
@@ -35,22 +35,54 @@ Please change your initial password.
 Kind regards,
 Your OQC Tool`
 
-var bodyTmpl = template.Must(template.New("body").Parse(bodyTemplate))
-
 func check(err error) {
 	if err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
 }
 
-func sendMail(recipient, password, TCName, smtpHost string) error {
+func send(host, sender, recipient string,
+	writeBody func(io.Writer) error,
+) error {
+	c, err := smtp.Dial(host)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+
+	// Set the sender and recipient first
+	if err := c.Mail(sender); err != nil {
+		return err
+	}
+	if err := c.Rcpt(recipient); err != nil {
+		return err
+	}
+
+	// Send the email body.
+	wc, err := c.Data()
+	if err != nil {
+		return err
+	}
+	if err := writeBody(wc); err != nil {
+		return err
+	}
+	if err = wc.Close(); err != nil {
+		return err
+	}
+
+	// Send the QUIT command and close the connection.
+	if err = c.Quit(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func sendMail(
+	tmpl *template.Template,
+	recipient, password, TCName, smtpHost string) error {
 	smtpPort := "25"
 	emailFrom := "OASIS Quorum Calculator <no-reply@quorum.oasis-open.org>"
 	//emailPassword := ""
-
-	headers := "MIME-Version: 1.0\r\n" +
-		"Content-Transfer-Encoding: 8bit\r\n" +
-		"Content-Type: text/plain; charset=\"UTF-8\"\r\n"
 
 	subject := "OQC - OASIS Quorum Calculator: Account creation"
 
@@ -64,33 +96,25 @@ func sendMail(recipient, password, TCName, smtpHost string) error {
 		TCName:    TCName,
 	}
 
-	var buf bytes.Buffer
-	if err := bodyTmpl.Execute(&buf, data); err != nil {
+	writeBody := func(body io.Writer) error {
+		fmt.Fprintf(body, "To: %s\r\n", recipient)
+		fmt.Fprintf(body, "From: %s\r\n", emailFrom)
+		fmt.Fprintf(body, "Subject: %s\r\n", subject)
+		fmt.Fprint(body, "MIME-Version: 1.0\r\n")
+		fmt.Fprint(body, "Content-Transfer-Encoding: 8bit\r\n")
+		fmt.Fprint(body, "Content-Type: text/plain; charset=\"UTF-8\"\r\n")
+		fmt.Fprint(body, "\r\n")
+		if err := tmpl.Execute(body, data); err != nil {
+			return err
+		}
+		_, err := fmt.Fprint(body, "\r\n")
 		return err
 	}
-	body := buf.String()
-	// make sure that mixed line endings are all \r\n
-	normBody := strings.ReplaceAll(body, "\r\n", "\n")
-	body = strings.ReplaceAll(normBody, "\n", "\r\n")
-
-	msg := []byte(
-		"To: " + recipient + "\r\n" +
-			"From: " + emailFrom + "\r\n" +
-			"Subject: " + subject + "\r\n" +
-			headers +
-			"\r\n" +
-			body + "\r\n",
-	)
 
 	//auth := smtp.PlainAuth("", emailFrom, emailPassword, smtpHost)
 
-	if err := smtp.SendMail(
-		smtpHost+":"+smtpPort,
-		nil,
-		emailFrom,
-		[]string{recipient},
-		msg,
-	); err != nil {
+	if err := send(
+		smtpHost+":"+smtpPort, emailFrom, recipient, writeBody); err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 	log.Printf("Email to %s sent successfully!\n", recipient)
@@ -98,7 +122,7 @@ func sendMail(recipient, password, TCName, smtpHost string) error {
 	return nil
 }
 
-func run(passwordCSV, TCName, smtpHost string) error {
+func run(tmplText, passwordCSV, TCName, smtpHost string) error {
 	passwordsFile, err := os.Open(passwordCSV)
 	if err != nil {
 		return err
@@ -111,14 +135,21 @@ func run(passwordCSV, TCName, smtpHost string) error {
 		return err
 	}
 
-	log.Printf("sending out emails for TC `%s`\n", TCName)
+	// make sure that mixed line endings are all \r\n
+	tmplText = strings.ReplaceAll(tmplText, "\r\n", "\n")
+	tmplText = strings.ReplaceAll(tmplText, "\n", "\r\n")
 
+	tmpl, err := template.New("body").Parse(tmplText)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("sending out emails for TC `%s`\n", TCName)
 	for _, record := range records {
-		if err := sendMail(record[0], record[1], TCName, smtpHost); err != nil {
+		if err := sendMail(tmpl, record[0], record[1], TCName, smtpHost); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -135,5 +166,5 @@ func main() {
 	flag.StringVar(&smtpHost, "h", "localhost", "Name of the smtp server to connect to.")
 	flag.Parse()
 
-	check(run(passwordCSV, TCName, smtpHost))
+	check(run(templateTxt, passwordCSV, TCName, smtpHost))
 }
