@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"encoding/csv"
 	"flag"
@@ -28,14 +29,63 @@ type user struct {
 	initialStatus models.MemberStatus
 }
 
+type meeting struct {
+	startTime time.Time
+	attendees []string
+}
+
 type data struct {
-	users []*user
+	users    []*user
+	meetings []*meeting
 }
 
 func check(err error) {
 	if err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
+}
+
+func extractMeetings(records [][]string) ([]*meeting, error) {
+	var meetings []*meeting
+
+	// Transpose rows to columns
+	numCols := len(records[0])
+	columns := make([][]string, numCols)
+	for i := 0; i < numCols; i++ {
+		for _, row := range records {
+			if i < len(row) {
+				columns[i] = append(columns[i], row[i])
+			}
+		}
+	}
+
+	// Meeting columns start after the initial user status list
+	if len(columns) <= 4 {
+		return nil, errors.New("not enough columns")
+	}
+	columns = columns[4:]
+
+	for _, m := range columns {
+		if len(m) < 1 {
+			continue
+		}
+		t, err := time.Parse("2006-01-02", m[0])
+		if err != nil {
+			return nil, err
+		}
+
+		attendees := []string{}
+		for _, a := range m[1:] {
+			if a != "" {
+				attendees = append(attendees, a)
+			}
+		}
+		meetings = append(meetings, &meeting{
+			startTime: t,
+			attendees: attendees,
+		})
+	}
+	return meetings, nil
 }
 
 func extractUsers(records [][]string) ([]*user, error) {
@@ -110,8 +160,14 @@ func loadCSV(filename string) (*data, error) {
 		return nil, fmt.Errorf("extracting users failed: %w", err)
 	}
 
+	meetings, err := extractMeetings(records)
+	if err != nil {
+		return nil, fmt.Errorf("extracting meetings failed: %w", err)
+	}
+
 	return &data{
-		users: users,
+		users:    users,
+		meetings: meetings,
 	}, nil
 }
 
