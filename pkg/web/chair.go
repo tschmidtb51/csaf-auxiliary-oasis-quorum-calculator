@@ -616,7 +616,7 @@ func (c *Controller) meetingsExport(w http.ResponseWriter, r *http.Request) {
 		"Quorum Reached",
 		"Quorum Percent",
 		"Attending Voting",
-		"Total Attendees",
+		"Total Voters",
 		"Attendees",
 		"Non-Attendees",
 	}
@@ -651,9 +651,6 @@ func (c *Controller) meetingsExport(w http.ResponseWriter, r *http.Request) {
 			description = *meeting.Description
 		}
 
-		// All attendees
-		totalAttendees := len(meetingData.Attendees)
-
 		var attendeesList []string
 		for nickname, voting := range meetingData.Attendees {
 			status := "non-voting"
@@ -686,7 +683,7 @@ func (c *Controller) meetingsExport(w http.ResponseWriter, r *http.Request) {
 			fmt.Sprintf("%t", quorum.Reached()),
 			fmt.Sprintf("%.2f", quorum.Percent()),
 			fmt.Sprintf("%d", quorum.AttendingVoting),
-			fmt.Sprintf("%d", totalAttendees),
+			fmt.Sprintf("%d", quorum.Voting),
 			attendeesString,
 			nonAttendeesString,
 		}
