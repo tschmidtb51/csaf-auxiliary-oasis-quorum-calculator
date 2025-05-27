@@ -10,8 +10,12 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/database"
+	"iter"
 	"strings"
 	"time"
 
@@ -171,7 +175,8 @@ func loadCSV(filename string) (*data, error) {
 	}, nil
 }
 
-func run(committee, csv string) error {
+func run(committee, csv, databaseURL string) error {
+	ctx := context.Background()
 
 	table, err := loadCSV(csv)
 	if err != nil {
@@ -181,16 +186,76 @@ func run(committee, csv string) error {
 	_ = table
 	_ = committee
 
+	db, err := database.NewDatabase(ctx, &config.Database{
+		DatabaseURL: databaseURL,
+	})
+	if err != nil {
+		return err
+	}
+	defer db.Close(ctx)
+	committees, err := models.LoadCommittees(ctx, db)
+
+	var committeeModel *models.Committee
+	for _, c := range committees {
+		if c.Name == committee {
+			committeeModel = c
+		}
+	}
+	if committeeModel == nil {
+		return fmt.Errorf("committee %q not found", committee)
+	}
+	for _, user := range table.users {
+		ms := []models.Membership{{
+			Committee: committeeModel,
+			Status:    user.initialStatus,
+			// TODO avoid role overwrite
+			Roles: nil,
+		}}
+		msIter := func() iter.Seq[*models.Membership] {
+			return func(yield func(ms *models.Membership) bool) {
+				for _, m := range ms {
+					if !yield(&m) {
+						return
+					}
+				}
+			}
+		}
+		if err := models.UpdateMemberships(ctx, db, user.name, msIter()); err != nil {
+			return err
+		}
+	}
+
+	for _, m := range table.meetings {
+		meeting := models.Meeting{
+			CommitteeID: committeeModel.ID,
+			Gathering:   false,
+			StartTime:   m.startTime,
+			// TODO: Don't guess stop time
+			StopTime:    m.startTime.Add(1 * time.Hour),
+			Description: nil,
+		}
+		if err = meeting.StoreNew(ctx, db); err != nil {
+			return err
+		}
+
+		if err = models.ChangeMeetingStatus(ctx, db, meeting.ID, committeeModel.ID, models.MeetingConcluded); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 func main() {
 	var (
-		committee string
-		csv       string
+		committee   string
+		databaseURL string
+		csv         string
 	)
 	flag.StringVar(&committee, "committee", "", "Committee to be imported")
 	flag.StringVar(&csv, "csv", "committee.csv", "CSV with a committee time table to import")
+	flag.StringVar(&databaseURL, "database", "oqcd.sqlite", "SQLite database")
+	flag.StringVar(&databaseURL, "d", "oqcd.sqlite", "SQLite database (shorthand)")
 	flag.Parse()
 	if committee == "" {
 		log.Fatalln("missing committee name")
@@ -198,5 +263,5 @@ func main() {
 	if csv == "" {
 		log.Fatalln("missing CSV filename")
 	}
-	check(run(committee, csv))
+	check(run(committee, csv, databaseURL))
 }
