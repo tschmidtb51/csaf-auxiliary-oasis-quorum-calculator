@@ -629,6 +629,10 @@ func (c *Controller) meetingsExport(w http.ResponseWriter, r *http.Request) {
 	for _, meetingData := range overview.Data {
 		meeting := meetingData.Meeting
 		quorum := meetingData.Quorum
+		if quorum == nil {
+			quorum = &models.Quorum{}
+		}
+
 		// Convert Status to string
 		var status string
 		switch meeting.Status {
