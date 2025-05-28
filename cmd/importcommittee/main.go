@@ -13,11 +13,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
-	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/database"
 	"iter"
 	"strings"
 	"time"
+
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/database"
 
 	"encoding/csv"
 	"flag"
@@ -55,7 +56,7 @@ func extractMeetings(records [][]string) ([]*meeting, error) {
 	// Transpose rows to columns
 	numCols := len(records[0])
 	columns := make([][]string, numCols)
-	for i := 0; i < numCols; i++ {
+	for i := range numCols {
 		for _, row := range records {
 			if i < len(row) {
 				columns[i] = append(columns[i], row[i])
