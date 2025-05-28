@@ -92,7 +92,7 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 </fieldset>
 {{- end }}
 
-{{ $exporter := or $chair $secretary $staff }}
+{{ $exporter := or $chair $secretary $staff .User.IsAdmin }}
 {{ if $exporter }}
   <a href="/meetings_export?SESSIONID={{ $sessionID }}&committee={{ $committeeID }}">Export as CSV</a>
 {{ end }}
