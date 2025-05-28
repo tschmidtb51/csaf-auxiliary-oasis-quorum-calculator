@@ -125,8 +125,6 @@ func extractUsers(records [][]string) ([]*user, error) {
 			initialStatus = models.Voting
 		case "non-voter":
 			initialStatus = models.NoneVoting
-		case "member":
-			initialStatus = models.Member
 		default:
 			return nil, fmt.Errorf("unknown status %q for user %q", status, name)
 		}
