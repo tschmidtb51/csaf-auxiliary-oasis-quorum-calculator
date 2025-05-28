@@ -13,7 +13,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"iter"
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/misc"
 	"strings"
 	"time"
 
@@ -206,21 +206,12 @@ func run(committee, csv, databaseURL string) error {
 		return fmt.Errorf("committee %q not found", committee)
 	}
 	for _, user := range table.users {
-		ms := []models.Membership{{
+		ms := &models.Membership{
 			Committee: committeeModel,
 			Status:    user.initialStatus,
 			Roles:     []models.Role{user.initialRole},
-		}}
-		msIter := func() iter.Seq[*models.Membership] {
-			return func(yield func(ms *models.Membership) bool) {
-				for _, m := range ms {
-					if !yield(&m) {
-						return
-					}
-				}
-			}
 		}
-		if err := models.UpdateMemberships(ctx, db, user.name, msIter()); err != nil {
+		if err := models.UpdateMemberships(ctx, db, user.name, misc.Values(ms)); err != nil {
 			return err
 		}
 	}
@@ -238,17 +229,9 @@ func run(committee, csv, databaseURL string) error {
 			return err
 		}
 
-		attendIter := func() iter.Seq2[string, bool] {
-			return func(yield func(string, bool) bool) {
-				for _, a := range m.attendees {
-					if !yield(a, true) {
-						return
-					}
-				}
-			}
-		}
+		misc.Attribute(misc.Values(m.attendees), true)
 
-		if err = models.Attend(ctx, db, meeting.ID, attendIter(), meeting.StartTime); err != nil {
+		if err = models.Attend(ctx, db, meeting.ID, misc.Attribute(misc.Values(m.attendees...), true), meeting.StartTime); err != nil {
 			return err
 		}
 
