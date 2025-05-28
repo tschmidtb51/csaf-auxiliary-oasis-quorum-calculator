@@ -206,8 +206,7 @@ func run(committee, csv, databaseURL string) error {
 		ms := []models.Membership{{
 			Committee: committeeModel,
 			Status:    user.initialStatus,
-			// TODO avoid role overwrite
-			Roles: nil,
+			Roles:     []models.Role{user.initialRole},
 		}}
 		msIter := func() iter.Seq[*models.Membership] {
 			return func(yield func(ms *models.Membership) bool) {
