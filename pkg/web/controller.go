@@ -156,7 +156,7 @@ func (c *Controller) Bind() http.Handler {
 		{"/meeting_status", mw.CommitteeRoles(c.meetingStatus, models.ChairRole, models.MemberRole, models.SecretaryRole, models.StaffRole)},
 		{"/meeting_status_store", mw.CommitteeRoles(c.meetingStatusStore, models.ChairRole, models.SecretaryRole, models.StaffRole)},
 		{"/meeting_attend_store", mw.CommitteeRoles(c.meetingAttendStore, models.ChairRole, models.SecretaryRole, models.StaffRole)},
-		{"/meetings_export", mw.CommitteeRoles(c.meetingsExport, models.ChairRole, models.SecretaryRole)},
+		{"/meetings_export", mw.CommitteeRoles(c.meetingsExport, models.ChairRole, models.SecretaryRole, models.StaffRole)},
 		// Member
 		{"/member", mw.Roles(c.member, models.MemberRole)},
 		{"/member_attend", mw.CommitteeRoles(c.memberAttend, models.MemberRole)},
