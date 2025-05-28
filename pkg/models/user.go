@@ -155,10 +155,7 @@ func (u *User) Compare(o *User) int {
 
 // MembershipByID return the membership for a given committee id.
 func (u *User) MembershipByID(id int64) *Membership {
-	if ms := u.FindMembershipCriterion(MembershipByID(id)); ms != nil {
-		return ms
-	}
-	return nil
+	return u.FindMembershipCriterion(MembershipByID(id))
 }
 
 // CommitteeByID return the committee for a given id.
