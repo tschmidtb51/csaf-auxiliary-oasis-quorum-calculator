@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/misc"
+	"sort"
 	"strings"
 	"time"
 
@@ -90,6 +91,11 @@ func extractMeetings(records [][]string) ([]*meeting, error) {
 			attendees: attendees,
 		})
 	}
+
+	// Meetings need to be sorted in ascending order
+	sort.Slice(meetings, func(i, j int) bool {
+		return meetings[i].startTime.Before(meetings[j].startTime)
+	})
 	return meetings, nil
 }
 
@@ -187,7 +193,7 @@ func run(committee, csv, databaseURL string) error {
 	}
 
 	db, err := database.NewDatabase(ctx, &config.Database{
-		Driver: "sqlite3",
+		Driver:      "sqlite3",
 		DatabaseURL: databaseURL,
 	})
 	if err != nil {
