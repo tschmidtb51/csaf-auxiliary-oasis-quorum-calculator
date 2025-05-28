@@ -132,6 +132,8 @@ func extractUsers(records [][]string) ([]*user, error) {
 			initialStatus = models.NoneVoting
 		case "chair":
 			initialRole = models.ChairRole
+		case "secretary":
+			initialRole = models.SecretaryRole
 		default:
 			return nil, fmt.Errorf("unknown role %q for user %q", role, name)
 		}
@@ -185,6 +187,7 @@ func run(committee, csv, databaseURL string) error {
 	}
 
 	db, err := database.NewDatabase(ctx, &config.Database{
+		Driver: "sqlite3",
 		DatabaseURL: databaseURL,
 	})
 	if err != nil {
