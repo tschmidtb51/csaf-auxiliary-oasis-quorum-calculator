@@ -184,9 +184,6 @@ func run(committee, csv, databaseURL string) error {
 		return fmt.Errorf("loading CSV failed: %w", err)
 	}
 
-	_ = table
-	_ = committee
-
 	db, err := database.NewDatabase(ctx, &config.Database{
 		DatabaseURL: databaseURL,
 	})
@@ -236,6 +233,20 @@ func run(committee, csv, databaseURL string) error {
 			Description: nil,
 		}
 		if err = meeting.StoreNew(ctx, db); err != nil {
+			return err
+		}
+
+		attendIter := func() iter.Seq2[string, bool] {
+			return func(yield func(string, bool) bool) {
+				for _, a := range m.attendees {
+					if !yield(a, true) {
+						return
+					}
+				}
+			}
+		}
+
+		if err = models.Attend(ctx, db, meeting.ID, attendIter(), meeting.StartTime); err != nil {
 			return err
 		}
 
