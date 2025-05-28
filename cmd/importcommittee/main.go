@@ -66,10 +66,10 @@ func extractMeetings(records [][]string) ([]*meeting, error) {
 	}
 
 	// Meeting columns start after the initial user status list
-	if len(columns) <= 4 {
+	if len(columns) <= 3 {
 		return nil, errors.New("not enough columns")
 	}
-	columns = columns[4:]
+	columns = columns[3:]
 
 	for _, m := range columns {
 		if len(m) < 1 {
