@@ -72,7 +72,7 @@ func extractMeetings(records [][]string) ([]*meeting, error) {
 	columns = columns[3:]
 
 	for _, m := range columns {
-		if len(m) < 1 {
+		if len(m) < 1 || m[0] == "" {
 			continue
 		}
 		t, err := time.Parse("2006-01-02", m[0])
