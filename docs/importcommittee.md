@@ -8,7 +8,7 @@
  Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 -->
 
-# Committee Import Tool Documentation
+# Committee Import Tool
 
 ## Overview
 
