@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/misc"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -208,6 +209,58 @@ func run(committee, csv, databaseURL string) error {
 			committeeModel = c
 		}
 	}
+
+	// Load and check if the username is correct and try to guess the username
+	// based on firstname and lastname if the specified name does not exist
+	users, err := models.LoadAllUsers(ctx, db)
+	if err != nil {
+		return fmt.Errorf("loading users failed: %w", err)
+	}
+
+	for _, user := range table.users {
+		// Check if username exists
+		idx := slices.IndexFunc(users, func(u *models.User) bool {
+			return u.Nickname == user.name
+		})
+		// Username not found trying firstname and lastname
+		if idx < 0 {
+			idx = slices.IndexFunc(users, func(u *models.User) bool {
+				if u.Firstname == nil && u.Lastname == nil {
+					return false
+				}
+				return strings.HasPrefix(user.name, *u.Firstname) &&
+					strings.HasSuffix(user.name, *u.Lastname)
+			})
+			// Set username if a good match was found
+			if idx >= 0 {
+				user.name = users[idx].Nickname
+			}
+		}
+	}
+
+	for _, m := range table.meetings {
+		for attendeeIdx, attendee := range m.attendees {
+			// Check if username exists
+			idx := slices.IndexFunc(users, func(u *models.User) bool {
+				return u.Nickname == attendee
+			})
+			// Username not found trying firstname and lastname
+			if idx < 0 {
+				idx = slices.IndexFunc(users, func(u *models.User) bool {
+					if u.Firstname == nil && u.Lastname == nil {
+						return false
+					}
+					return strings.HasPrefix(attendee, *u.Firstname) &&
+						strings.HasSuffix(attendee, *u.Lastname)
+				})
+				// Set username if a good match was found
+				if idx >= 0 {
+					m.attendees[attendeeIdx] = users[idx].Nickname
+				}
+			}
+		}
+	}
+
 	if committeeModel == nil {
 		return fmt.Errorf("committee %q not found", committee)
 	}
@@ -253,18 +306,18 @@ func main() {
 	var (
 		committee   string
 		databaseURL string
-		csv         string
+		csvFile     string
 	)
 	flag.StringVar(&committee, "committee", "", "Committee to be imported")
-	flag.StringVar(&csv, "csv", "committee.csv", "CSV with a committee time table to import")
+	flag.StringVar(&csvFile, "csv", "committee.csvFile", "CSV with a committee time table to import")
 	flag.StringVar(&databaseURL, "database", "oqcd.sqlite", "SQLite database")
 	flag.StringVar(&databaseURL, "d", "oqcd.sqlite", "SQLite database (shorthand)")
 	flag.Parse()
 	if committee == "" {
 		log.Fatalln("missing committee name")
 	}
-	if csv == "" {
+	if csvFile == "" {
 		log.Fatalln("missing CSV filename")
 	}
-	check(run(committee, csv, databaseURL))
+	check(run(committee, csvFile, databaseURL))
 }
