@@ -44,9 +44,16 @@ type data struct {
 	meetings []*meeting
 }
 
-func check(err error) {
-	if err != nil {
-		log.Fatalf("error: %v\n", err)
+func fuzzyMatchUser(name string) func(*models.User) bool {
+	username := strings.ToLower(name)
+	return func(user *models.User) bool {
+		firstname := strings.ToLower(misc.EmptyString(user.Firstname))
+		lastname := strings.ToLower(misc.EmptyString(user.Lastname))
+		if firstname == "" && lastname == "" {
+			return false
+		}
+		return strings.Contains(username, firstname) &&
+			strings.Contains(username, lastname)
 	}
 }
 
@@ -225,20 +232,10 @@ func run(committee, csv, databaseURL string) error {
 		})
 		// Username not found trying firstname and lastname
 		if idx < 0 {
-			username := strings.ToLower(user.name)
-			idx = slices.IndexFunc(users, func(u *models.User) bool {
-				firstname := strings.ToLower(misc.EmptyString(u.Firstname))
-				lastname := strings.ToLower(misc.EmptyString(u.Lastname))
-				if firstname == "" && lastname == "" {
-					return false
-				}
-				return strings.Contains(username, firstname) &&
-					strings.Contains(username, lastname)
-			})
-			// Set username if a good match was found
-			if idx < 0 {
+			if idx = slices.IndexFunc(users, fuzzyMatchUser(user.name)); idx < 0 {
 				return fmt.Errorf("no nickname found for user %q", user.name)
 			}
+			// Set username if a good match was found
 			user.name = users[idx].Nickname
 		}
 	}
@@ -251,17 +248,11 @@ func run(committee, csv, databaseURL string) error {
 			})
 			// Username not found trying firstname and lastname
 			if idx < 0 {
-				idx = slices.IndexFunc(users, func(u *models.User) bool {
-					if u.Firstname == nil && u.Lastname == nil {
-						return false
-					}
-					return strings.HasPrefix(attendee, *u.Firstname) &&
-						strings.HasSuffix(attendee, *u.Lastname)
-				})
-				// Set username if a good match was found
-				if idx >= 0 {
-					m.attendees[attendeeIdx] = users[idx].Nickname
+				if idx = slices.IndexFunc(users, fuzzyMatchUser(attendee)); idx < 0 {
+					return fmt.Errorf("no nickname found for attendee %q", attendee)
 				}
+				// Set username if a good match was found
+				m.attendees[attendeeIdx] = users[idx].Nickname
 			}
 		}
 	}
@@ -302,6 +293,12 @@ func run(committee, csv, databaseURL string) error {
 	}
 
 	return nil
+}
+
+func check(err error) {
+	if err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
 }
 
 func main() {
