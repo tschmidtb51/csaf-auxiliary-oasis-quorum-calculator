@@ -287,7 +287,7 @@ func run(committee, csv, databaseURL string) error {
 			return err
 		}
 
-		if err = models.ChangeMeetingStatus(ctx, db, meeting.ID, committeeModel.ID, models.MeetingConcluded); err != nil {
+		if err = models.ChangeMeetingStatus(ctx, db, meeting.ID, committeeModel.ID, models.MeetingConcluded, meeting.StopTime); err != nil {
 			return err
 		}
 	}

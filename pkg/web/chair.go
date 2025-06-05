@@ -483,13 +483,18 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 		committeeID, err2   = misc.Atoi64(r.FormValue("committee"))
 		meetingStatus, err3 = models.ParseMeetingStatus(r.FormValue("status"))
 		ctx                 = r.Context()
+		begin, err4         = time.Parse(time.RFC3339, r.FormValue("begin"))
+		duration, err5      = time.ParseDuration(r.FormValue("duration"))
 	)
-	if !checkParam(w, err1, err2, err3) {
+	if !checkParam(w, err1, err2, err3, err4, err5) {
 		return
 	}
+	// Whether to use time.Now() or not
+	timer := misc.CalculateEndpoint(begin, duration)
 	switch err := models.ChangeMeetingStatus(
 		ctx, c.db,
 		meetingID, committeeID, meetingStatus,
+		timer,
 	); {
 	case errors.Is(err, models.ErrAlreadyRunning):
 		c.meetingStatusError(w, r, "Already have a running meeting in this committee.")
