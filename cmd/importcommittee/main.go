@@ -225,12 +225,15 @@ func run(committee, csv, databaseURL string) error {
 		})
 		// Username not found trying firstname and lastname
 		if idx < 0 {
+			username := strings.ToLower(user.name)
 			idx = slices.IndexFunc(users, func(u *models.User) bool {
-				if u.Firstname == nil && u.Lastname == nil {
+				firstname := strings.ToLower(misc.EmptyString(u.Firstname))
+				lastname := strings.ToLower(misc.EmptyString(u.Lastname))
+				if firstname == "" && lastname == "" {
 					return false
 				}
-				return strings.HasPrefix(user.name, *u.Firstname) &&
-					strings.HasSuffix(user.name, *u.Lastname)
+				return strings.Contains(username, firstname) &&
+					strings.Contains(username, lastname)
 			})
 			// Set username if a good match was found
 			if idx < 0 {
