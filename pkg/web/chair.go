@@ -9,7 +9,6 @@
 package web
 
 import (
-	"database/sql"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -489,23 +488,14 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Query the database to get start_time and stop_time for the meeting
-	var begin, end time.Time
-	err := c.db.DB.QueryRowxContext(ctx, `
-        SELECT start_time, stop_time
-        FROM meetings
-        WHERE id = ?`, meetingID).Scan(&begin, &end)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			c.meetingStatusError(w, r, "Meeting not found")
-			return
-		}
-		c.meetingStatusError(w, r, "Failed to retrieve meeting times")
+	// needed for timestamps for begin and end of meeting
+	meeting, err := models.LoadMeeting(ctx, c.db, meetingID, committeeID)
+	if !check(w, r, err) {
 		return
 	}
 
 	// Whether to use time.Now() or not
-	timer := misc.CalculateEndpoint(begin, end)
+	timer := misc.CalculateEndpoint(meeting.StartTime, meeting.StopTime)
 	switch err := models.ChangeMeetingStatus(
 		ctx, c.db,
 		meetingID, committeeID, meetingStatus,
