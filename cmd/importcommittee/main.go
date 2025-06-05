@@ -13,20 +13,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/misc"
 	"slices"
-	"sort"
 	"strings"
 	"time"
-
-	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
-	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/database"
 
 	"encoding/csv"
 	"flag"
 	"log"
 	"os"
 
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/config"
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/database"
+	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/misc"
 	"github.com/csaf-auxiliary/oasis-quorum-calculator/pkg/models"
 )
 
@@ -94,8 +92,8 @@ func extractMeetings(records [][]string) ([]*meeting, error) {
 	}
 
 	// Meetings need to be sorted in ascending order
-	sort.Slice(meetings, func(i, j int) bool {
-		return meetings[i].startTime.Before(meetings[j].startTime)
+	slices.SortFunc(meetings, func(a, b *meeting) int {
+		return a.startTime.Compare(b.startTime)
 	})
 	return meetings, nil
 }
@@ -209,6 +207,9 @@ func run(committee, csv, databaseURL string) error {
 			committeeModel = c
 		}
 	}
+	if committeeModel == nil {
+		return fmt.Errorf("committee %q not found", committee)
+	}
 
 	// Load and check if the username is correct and try to guess the username
 	// based on firstname and lastname if the specified name does not exist
@@ -232,9 +233,10 @@ func run(committee, csv, databaseURL string) error {
 					strings.HasSuffix(user.name, *u.Lastname)
 			})
 			// Set username if a good match was found
-			if idx >= 0 {
-				user.name = users[idx].Nickname
+			if idx < 0 {
+				return fmt.Errorf("no nickname found for user %q", user.name)
 			}
+			user.name = users[idx].Nickname
 		}
 	}
 
@@ -261,9 +263,6 @@ func run(committee, csv, databaseURL string) error {
 		}
 	}
 
-	if committeeModel == nil {
-		return fmt.Errorf("committee %q not found", committee)
-	}
 	for _, user := range table.users {
 		ms := &models.Membership{
 			Committee: committeeModel,
