@@ -65,12 +65,12 @@ Software-Engineering: 2025 Intevation GmbH <https://intevation.de>
 {{ if or $chair $secretary }}
 {{ if $concluded }}Concluded{{ else }}
 {{- if $onhold }}[Waiting]
-{{- else }}[<a href="/meeting_status_store?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}&begin={{ .Meeting.StartTime.UTC.Format "2006-01-02T15:04:05Z07:00" }}&duration={{ .Meeting.Duration }}&status=onhold">Pause</a>]
+{{- else }}[<a href="/meeting_status_store?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}&status=onhold">Pause</a>]
 {{- end }}
 {{ if or $running $alreadyRunning }}[Running]
-{{- else }}[<a href="/meeting_status_store?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}&begin={{ .Meeting.StartTime.UTC.Format "2006-01-02T15:04:05Z07:00" }}&duration={{ .Meeting.Duration }}&status=running">Run</a>]
+{{- else }}[<a href="/meeting_status_store?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}&status=running">Run</a>]
 {{- end }}
-[<a href="/meeting_status_store?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}&begin={{ .Meeting.StartTime.UTC.Format "2006-01-02T15:04:05Z07:00" }}&duration={{ .Meeting.Duration }}&status=concluded">Conclude</a>]
+[<a href="/meeting_status_store?SESSIONID={{ $sessionID }}&meeting={{ $meetingID }}&committee={{ $committeeID }}&status=concluded">Conclude</a>]
 {{ end }}
 {{ else }}
 {{ if $concluded }}Concluded

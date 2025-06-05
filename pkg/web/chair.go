@@ -9,6 +9,7 @@
 package web
 
 import (
+	"database/sql"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -483,14 +484,28 @@ func (c *Controller) meetingStatusStore(w http.ResponseWriter, r *http.Request) 
 		committeeID, err2   = misc.Atoi64(r.FormValue("committee"))
 		meetingStatus, err3 = models.ParseMeetingStatus(r.FormValue("status"))
 		ctx                 = r.Context()
-		begin, err4         = time.Parse(time.RFC3339, r.FormValue("begin"))
-		duration, err5      = time.ParseDuration(r.FormValue("duration"))
 	)
-	if !checkParam(w, err1, err2, err3, err4, err5) {
+	if !checkParam(w, err1, err2, err3) {
 		return
 	}
+
+	// Query the database to get start_time and stop_time for the meeting
+	var begin, end time.Time
+	err := c.db.DB.QueryRowxContext(ctx, `
+        SELECT start_time, stop_time
+        FROM meetings
+        WHERE id = ?`, meetingID).Scan(&begin, &end)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			c.meetingStatusError(w, r, "Meeting not found")
+			return
+		}
+		c.meetingStatusError(w, r, "Failed to retrieve meeting times")
+		return
+	}
+
 	// Whether to use time.Now() or not
-	timer := misc.CalculateEndpoint(begin, duration)
+	timer := misc.CalculateEndpoint(begin, end)
 	switch err := models.ChangeMeetingStatus(
 		ctx, c.db,
 		meetingID, committeeID, meetingStatus,

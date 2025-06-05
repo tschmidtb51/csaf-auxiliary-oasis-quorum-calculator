@@ -15,9 +15,8 @@ import (
 
 // CalculateEndpoint determines whether time.Now is happening during a duration from a set point in time.
 // If it is, then time.Now() is returned, otherwise the endpoint of the duration is returned.
-func CalculateEndpoint(begin time.Time, duration time.Duration) time.Time {
+func CalculateEndpoint(begin time.Time, end time.Time) time.Time {
 	now := time.Now()
-	end := begin.Add(duration)
 
 	if now.After(begin) && now.Before(end) {
 		return now
