@@ -207,6 +207,9 @@ func run(committee, csv, databaseURL string) error {
 	}
 	defer db.Close(ctx)
 	committees, err := models.LoadCommittees(ctx, db)
+	if err != nil {
+		return err
+	}
 
 	var committeeModel *models.Committee
 	for _, c := range committees {
