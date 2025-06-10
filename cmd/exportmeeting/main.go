@@ -59,7 +59,7 @@ func run(meetingCSV, committee, databaseURL string) error {
 
 	queryArgs := []any{}
 	if committee != "" {
-		loadAttendeesSQL += `WHERE meetings.committees_id = (SELECT id FROM committees WHERE name = ?) `
+		loadAttendeesSQL += `WHERE m.committees_id = (SELECT id FROM committees WHERE name = ?) `
 		queryArgs = append(queryArgs, committee)
 	}
 	loadAttendeesSQL += `GROUP BY start_time ORDER BY start_time`
