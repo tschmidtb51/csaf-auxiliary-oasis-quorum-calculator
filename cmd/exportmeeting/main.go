@@ -55,7 +55,7 @@ func run(meetingCSV, committee, databaseURL string) error {
 
 	meetings := []meeting{}
 
-	loadAttendeesSQL := `SELECT m.start_time, group_concat(nickname) FROM meetings ` +
+	loadAttendeesSQL := `SELECT m.start_time, group_concat(nickname) FROM meetings m ` +
 		`LEFT JOIN attendees a ON m.id = a.meetings_id `
 
 	queryArgs := []any{}
@@ -63,7 +63,7 @@ func run(meetingCSV, committee, databaseURL string) error {
 		loadAttendeesSQL += `WHERE m.committees_id = (SELECT id FROM committees WHERE name = ?) `
 		queryArgs = append(queryArgs, committee)
 	}
-	loadAttendeesSQL += `GROUP BY start_time ORDER BY start_time`
+	loadAttendeesSQL += `GROUP BY m.start_time ORDER BY m.start_time`
 	rows, err := db.QueryContext(ctx, loadAttendeesSQL, queryArgs...)
 	if err != nil {
 		return fmt.Errorf("querying attendees failed: %w", err)
